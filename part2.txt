@@ -1,0 +1,729 @@
+
+        // Main Door Panel
+        const doorPanel = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(40, 90, 2),
+          woodMat,
+        );
+        doorPanel.position.set(0, 45, 0);
+        doorGroup.add(doorPanel);
+
+        // Elaborate panels for depth
+        const insetDark = new THREE.MeshStandardMaterial({
+          color: 0x180b04,
+          roughness: 0.7,
+          metalness: 0.02,
+        });
+        // 4-panel classic design details
+        const panelPositions = [
+          { y: 70, h: 30 },
+          { y: 25, h: 40 },
+        ];
+        panelPositions.forEach((p) => {
+          const outerP = new THREE.Mesh(
+            new THREE.BoxBufferGeometry(28, p.h, 2.5),
+            woodMat,
+          );
+          outerP.position.set(0, p.y, 0);
+          doorGroup.add(outerP);
+
+          const innerP = new THREE.Mesh(
+            new THREE.BoxBufferGeometry(24, p.h - 4, 2.8),
+            insetDark,
+          );
+          innerP.position.set(0, p.y, 0);
+          doorGroup.add(innerP);
+        });
+
+        // Hyper-Realistic Metallic Handle & Lock
+        const handleGroup = new THREE.Group();
+        handleGroup.position.set(15, 45, 1.25); // Set handle on the right side of door
+        doorGroup.add(handleGroup);
+
+        const hMetalMat = new THREE.MeshPhysicalMaterial({
+          color: 0xe0e0e0,
+          metalness: 0.9,
+          roughness: 0.2,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.1,
+        });
+
+        // Base plate
+        const basePlate = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(3, 10, 0.4),
+          hMetalMat,
+        );
+        basePlate.position.set(0, 0, 0);
+        handleGroup.add(basePlate);
+
+        // Keyhole (Real cutout illusion)
+        const keyHoleMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const keyHole = new THREE.Mesh(
+          new THREE.CylinderBufferGeometry(0.3, 0.3, 0.6, 16),
+          keyHoleMat,
+        );
+        keyHole.rotation.x = Math.PI / 2;
+        keyHole.position.set(0, -3, 0.2);
+        handleGroup.add(keyHole);
+        const keySlot = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(0.3, 0.8, 0.6),
+          keyHoleMat,
+        );
+        keySlot.position.set(0, -3.4, 0.2);
+        handleGroup.add(keySlot);
+
+        // Handle shaft
+        const hShaft = new THREE.Mesh(
+          new THREE.CylinderBufferGeometry(0.4, 0.5, 2, 16),
+          hMetalMat,
+        );
+        hShaft.rotation.x = Math.PI / 2;
+        hShaft.position.set(0, 2, 1);
+        handleGroup.add(hShaft);
+
+        // Handle lever (curved elegant)
+        const hLever = new THREE.Mesh(
+          new THREE.CylinderBufferGeometry(0.4, 0.3, 8, 16),
+          hMetalMat,
+        );
+        hLever.rotation.z = Math.PI / 2;
+        hLever.position.set(-3.5, 2, 1.8);
+        handleGroup.add(hLever);
+
+        // Handle end curve
+        const hEnd = new THREE.Mesh(
+          new THREE.SphereBufferGeometry(0.4, 16, 16),
+          hMetalMat,
+        );
+        hEnd.position.set(-7.5, 2, 1.8);
+        handleGroup.add(hEnd);
+
+        // Dedicated Door Highlight (brings out metal/wood texture)
+        const doorLight = new THREE.PointLight(0xffeedd, 0.6, 120);
+        doorLight.position.set(0, 50, 310);
+        roomGroup.add(doorLight);
+
+        // === 1.2 Tall Potted Plants (Front Wall Corners) ===
+        function createTallPlant() {
+          const plantContainer = new THREE.Group();
+
+          // Elegant tall matte ceramic pot with a bit of a curve
+          const potGeom = new THREE.CylinderBufferGeometry(7, 5, 22, 64);
+          const potMat = new THREE.MeshStandardMaterial({
+            color: 0x1f2326, // Very dark modern grey
+            roughness: 0.8,
+            metalness: 0.1,
+          });
+          const pot = new THREE.Mesh(potGeom, potMat);
+          pot.position.y = 11; // Half of 22
+          plantContainer.add(pot);
+
+          // Soil
+          const soilGeom = new THREE.CylinderBufferGeometry(6.8, 6.8, 0.5, 32);
+          const soilMat = new THREE.MeshStandardMaterial({
+            color: 0x110804,
+            roughness: 1.0,
+          });
+          const soil = new THREE.Mesh(soilGeom, soilMat);
+          soil.position.y = 21.5;
+          plantContainer.add(soil);
+
+          // Lush Parametric Palm (Areca / Kentia Palm style)
+          // We will create several sweeping fronds emitting from the center.
+          const frondCount = 28; // very lush
+          const leafColor1 = new THREE.Color(0x284022); // Deep green
+          const leafColor2 = new THREE.Color(0x4a7a37); // Lighter green
+          const stemMat = new THREE.MeshStandardMaterial({
+            color: 0x3d5c2c,
+            roughness: 0.6,
+          });
+
+          // Pre-create leaflet geometries to save memory
+          // A leaflet is an elongated curved shape. We will use a scaled sphere or box.
+          // Or simply a BoxBufferGeometry rotated, which looks good if dense.
+          const leafletGeom = new THREE.BoxBufferGeometry(0.3, 0.05, 1);
+          leafletGeom.translate(0, 0, 0.5); // Pivot at the base
+
+          for (let i = 0; i < frondCount; i++) {
+            const frondGroup = new THREE.Group();
+
+            // Randomize frond parameters
+            const angle =
+              (i / frondCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+            const length = 40 + Math.random() * 35; // taller! up to 75 units
+            const arc = 0.3 + Math.random() * 0.5; // how far it arcs outward (0 to 1)
+
+            // We use a curve for the main stem
+            const startPt = new THREE.Vector3(
+              (Math.random() - 0.5) * 3,
+              21.5,
+              (Math.random() - 0.5) * 3,
+            );
+            const midPt = new THREE.Vector3(
+              Math.cos(angle) * (length * arc * 0.3),
+              21.5 + length * 0.6,
+              Math.sin(angle) * (length * arc * 0.3),
+            );
+            const endPt = new THREE.Vector3(
+              Math.cos(angle) * (length * arc),
+              21.5 + length * (1.0 - arc * 0.4),
+              Math.sin(angle) * (length * arc),
+            );
+
+            const stemCurve = new THREE.QuadraticBezierCurve3(
+              startPt,
+              midPt,
+              endPt,
+            );
+            const sGeom = new THREE.TubeBufferGeometry(
+              stemCurve,
+              12,
+              0.25,
+              6,
+              false,
+            );
+            const stem = new THREE.Mesh(sGeom, stemMat);
+            frondGroup.add(stem);
+
+            // Add leaflets along the stem
+            const leafletMat = new THREE.MeshStandardMaterial({
+              color: leafColor1
+                .clone()
+                .lerp(leafColor2, Math.random() * 0.6 + 0.2),
+              roughness: 0.5,
+              metalness: 0.1,
+              side: THREE.DoubleSide,
+            });
+
+            // Start leaflets partway up the stem
+            const numLeaflets = Math.floor(length * 1.5);
+            for (let j = 0; j < numLeaflets; j++) {
+              const t = 0.2 + (0.8 * j) / numLeaflets; // from 20% to 100% of the stem
+              const pos = stemCurve.getPoint(t);
+              const tangent = stemCurve.getTangent(t).normalize();
+
+              // We need a normal vector to point the leaflets horizontally outward from the stem
+              // A simple way is to cross the tangent with an "up" vector, though tangent itself might point up.
+              // Let's create a local basis.
+              const up = new THREE.Vector3(0, 1, 0);
+              let right = new THREE.Vector3().crossVectors(tangent, up);
+              if (right.lengthSq() < 0.001) {
+                // If tangent is completely vertical, just pick X
+                right.set(1, 0, 0);
+              }
+              right.normalize();
+
+              // The leaflets on the left and right of the stem
+              for (let side = -1; side <= 1; side += 2) {
+                const leaflet = new THREE.Mesh(leafletGeom, leafletMat);
+                leaflet.position.copy(pos);
+
+                // Orient the leaflet
+                // Point it slightly along the stem (tangent), mostly outwards (right * side)
+                // and droop slightly downwards (-up)
+                const droop = (1.0 - t) * 0.5 + 0.2; // upper leaflets droop more/less? Let's say droop increases towards tips
+                const dir = new THREE.Vector3()
+                  .copy(right)
+                  .multiplyScalar(side * 1.5)
+                  .add(tangent.clone().multiplyScalar(1.2))
+                  .add(up.clone().multiplyScalar(-droop))
+                  .normalize();
+
+                // Use lookAt to reorient the leaflet
+                // Since leaflet base is at origin, we create a dummy object to use lookAt
+                const target = pos.clone().add(dir);
+                leaflet.lookAt(target);
+
+                // Scale the leaflet (longer near the middle of the leafy section, tapering at the tip)
+                // t is 0.2 to 1.0. Let's map it to a parabolic scale.
+                const leafT = (t - 0.2) / 0.8; // 0 to 1
+                const lengthScale = Math.sin(leafT * Math.PI) * 4.0 + 1.0;
+                leaflet.scale.set(1, 1, lengthScale * (length / 50));
+
+                frondGroup.add(leaflet);
+              }
+            }
+
+            plantContainer.add(frondGroup);
+          }
+
+          return plantContainer;
+        }
+
+        // Left corner tall plant
+        const cornerPlantLeft = createTallPlant();
+        cornerPlantLeft.position.set(-270, -35, 320);
+        cornerPlantLeft.scale.set(1.4, 1.6, 1.4);
+        roomGroup.add(cornerPlantLeft);
+
+        // Right corner tall plant
+        const cornerPlantRight = createTallPlant();
+        cornerPlantRight.position.set(270, -35, 320);
+        cornerPlantRight.scale.set(1.3, 1.5, 1.3);
+        cornerPlantRight.rotation.y = Math.PI / 4;
+        roomGroup.add(cornerPlantRight);
+
+        // Skirting Board
+        const skirtGeom = new THREE.BoxBufferGeometry(600, 2, 2);
+        const skirtMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+        const skirtBack = new THREE.Mesh(skirtGeom, skirtMat);
+        skirtBack.position.set(0, -34, -199);
+        roomGroup.add(skirtBack);
+
+        // 2. Office Desk
+        const deskGroup = new THREE.Group();
+        roomGroup.add(deskGroup);
+
+        // Table top
+        const deskTopGeom = new THREE.BoxBufferGeometry(220, 4, 100);
+        const deskTopMat = new THREE.MeshStandardMaterial({
+          color: 0x4a3219,
+          roughness: 0.6,
+          metalness: 0.1,
+        }); // wood color
+        const deskTop = new THREE.Mesh(deskTopGeom, deskTopMat);
+        deskTop.position.set(0, -10, -80);
+        deskGroup.add(deskTop);
+
+        // Legs
+        const legGeom = new THREE.BoxBufferGeometry(4, 25, 96);
+        const legMat = new THREE.MeshStandardMaterial({
+          color: 0x111111,
+          roughness: 0.8,
+        });
+        const legLeft = new THREE.Mesh(legGeom, legMat);
+        legLeft.position.set(-100, -22.5, -80);
+        deskGroup.add(legLeft);
+        const legRight = new THREE.Mesh(legGeom, legMat);
+        legRight.position.set(100, -22.5, -80);
+        deskGroup.add(legRight);
+
+        // 3. PC Monitor
+        const monitorGroup = new THREE.Group();
+        deskGroup.add(monitorGroup);
+
+        // Base
+        const monitorBaseGeom = new THREE.BoxBufferGeometry(20, 1, 14);
+        const monitorPlastMat = new THREE.MeshStandardMaterial({
+          color: 0x050505,
+          roughness: 0.7,
+        });
+        const monBase = new THREE.Mesh(monitorBaseGeom, monitorPlastMat);
+        monBase.position.set(0, -7.5, -100);
+        monitorGroup.add(monBase);
+
+        // Stand
+        const monitorStandGeom = new THREE.CylinderBufferGeometry(2.0, 2.0, 14);
+        const monStand = new THREE.Mesh(monitorStandGeom, monitorPlastMat);
+        monStand.position.set(0, -1, -102);
+        monitorGroup.add(monStand);
+
+        // Screen border
+        const monitorGeom = new THREE.BoxBufferGeometry(52, 30, 2);
+        const monitorFrame = new THREE.Mesh(monitorGeom, monitorPlastMat);
+        monitorFrame.position.set(0, 10, -100);
+        monitorGroup.add(monitorFrame);
+
+        // Screen display (CanvasTexture replicating attached image)
+        const monitorCanvas = document.createElement("canvas");
+        // The image is a vertical screenshot, but the monitor is a horizontal screen (50x28).
+        // We'll draw the UI centered or use a horizontal arrangement.
+        monitorCanvas.width = 1920;
+        monitorCanvas.height = 1080;
+        const monitorCtx = monitorCanvas.getContext("2d");
+
+        // Background
+        monitorCtx.fillStyle = "#050608";
+        monitorCtx.fillRect(0, 0, 1920, 1080);
+
+        // Stars/Dots
+        monitorCtx.fillStyle = "#ffffff";
+        for (let i = 0; i < 60; i++) {
+          monitorCtx.globalAlpha = Math.random() * 0.5 + 0.1;
+          monitorCtx.fillRect(Math.random() * 1920, Math.random() * 1080, 2, 2);
+        }
+        monitorCtx.globalAlpha = 1.0;
+
+        // Top bar Logo
+        monitorCtx.fillStyle = "#d4af37";
+        monitorCtx.font = 'bold 36px "Arial"';
+        monitorCtx.textAlign = "left";
+        monitorCtx.fillText("✦  ALIOTH", 80, 80);
+
+        // Top bar Buttons
+        monitorCtx.fillStyle = "rgba(255, 255, 255, 0.05)";
+        monitorCtx.beginPath();
+        monitorCtx.roundRect(1600, 40, 250, 60, 30);
+        monitorCtx.fill();
+        monitorCtx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+        monitorCtx.stroke();
+
+        monitorCtx.fillStyle = "#555";
+        monitorCtx.font = '20px "Arial"';
+        monitorCtx.fillText("☀️", 1630, 80);
+        monitorCtx.fillStyle = "#d4af37";
+        monitorCtx.font = 'bold 18px "Arial"';
+        monitorCtx.fillText("ES", 1690, 78);
+        monitorCtx.fillStyle = "#777";
+        monitorCtx.fillText("EN", 1750, 78);
+
+        monitorCtx.beginPath();
+        monitorCtx.arc(1810, 70, 18, 0, Math.PI * 2);
+        monitorCtx.stroke();
+
+        // Main Content Group
+        monitorCtx.textAlign = "center";
+        monitorCtx.fillStyle = "#a58020";
+        monitorCtx.font = 'bold 20px "Arial"';
+        monitorCtx.letterSpacing = "6px";
+        monitorCtx.fillText("PREGUNTAS FRECUENTES", 960, 220);
+
+        monitorCtx.letterSpacing = "0px";
+        monitorCtx.fillStyle = "#ffffff";
+        monitorCtx.font = 'bold 96px "Arial"';
+        monitorCtx.shadowColor = "rgba(0,0,0,0.5)";
+        monitorCtx.shadowOffsetY = 4;
+        monitorCtx.shadowBlur = 10;
+        monitorCtx.fillText("Transparencia", 960, 340);
+        monitorCtx.fillStyle = "#ebd070";
+        monitorCtx.fillText("Operativa", 960, 440);
+
+        monitorCtx.shadowColor = "transparent";
+        monitorCtx.font = '28px "Arial"';
+        monitorCtx.fillStyle = "#aaaaaa";
+        monitorCtx.fillText(
+          "Respuestas directas a las dudas de infraestructura, seguridad",
+          960,
+          520,
+        );
+        monitorCtx.fillText("e integración técnica.", 960, 565);
+
+        // Accordion List
+        monitorCtx.textAlign = "left";
+        monitorCtx.font = 'bold 24px "Arial"';
+        const faqs = [
+          "¿Mis datos corporativos se usan para entrenar a la IA?",
+          "¿Cómo garantizan que un agente no tome una decisión desastrosa por una alucinación?",
+          "¿Tengo que cambiar mi software actual (ERP/CRM) para usar Alioth?",
+          "¿Qué pasa si la infraestructura falla o hay un pico masivo de peticiones?",
+          "¿Cuál es el modelo de inversión para implementar Alioth?",
+        ];
+
+        let yOffset = 640;
+        for (const faq of faqs) {
+          monitorCtx.fillStyle = "#0c0d10";
+          monitorCtx.beginPath();
+          monitorCtx.roundRect(420, yOffset, 1080, 68, 12);
+          monitorCtx.fill();
+
+          monitorCtx.fillStyle = "#ffffff";
+          monitorCtx.fillText(faq, 460, yOffset + 43);
+
+          monitorCtx.fillStyle = "#555555";
+          monitorCtx.font = '28px "Arial"';
+          monitorCtx.fillText("+", 1450, yOffset + 45);
+          monitorCtx.font = 'bold 24px "Arial"';
+
+          yOffset += 88;
+        }
+
+        const screenTexture = new THREE.CanvasTexture(monitorCanvas);
+        screenTexture.generateMipmaps = true;
+        screenTexture.minFilter = THREE.LinearMipmapLinearFilter;
+
+        const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture });
+        const screenPanelGeom = new THREE.PlaneBufferGeometry(50, 28);
+        const screenPanel = new THREE.Mesh(screenPanelGeom, screenMat);
+        screenPanel.position.set(0, 10, -98.9);
+        monitorGroup.add(screenPanel);
+
+        // PC Tower
+        const pcTowerGeom = new THREE.BoxBufferGeometry(22, 45, 50);
+        const pcTower = new THREE.Mesh(pcTowerGeom, monitorPlastMat);
+        pcTower.position.set(80, 12.5, -90);
+        deskGroup.add(pcTower);
+
+        const pcLightGeom = new THREE.BoxBufferGeometry(20, 2, 1);
+        const pcLightMat = new THREE.MeshBasicMaterial({ color: 0x00aaff });
+        const pcLight = new THREE.Mesh(pcLightGeom, pcLightMat);
+        pcLight.position.set(80, 28, -64.5);
+        deskGroup.add(pcLight);
+
+        // Keyboard
+        const kbGeom = new THREE.BoxBufferGeometry(40, 1.5, 14);
+        const kbRoom = new THREE.Mesh(kbGeom, monitorPlastMat);
+        kbRoom.position.set(0, -7.25, -60); // above desk top (-8)
+        deskGroup.add(kbRoom);
+
+        // Mouse
+        const mouseGeom = new THREE.BoxBufferGeometry(5, 1.5, 8);
+        const mouseRoom = new THREE.Mesh(mouseGeom, monitorPlastMat);
+        mouseRoom.position.set(30, -7.25, -60);
+        deskGroup.add(mouseRoom);
+
+        // 4. Desktop Items
+        // Coffee Cup
+        const cupGeom = new THREE.CylinderBufferGeometry(3, 3, 7, 16);
+        const cupMat = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          roughness: 0.2,
+        });
+        const cup = new THREE.Mesh(cupGeom, cupMat);
+        cup.position.set(-32, -4.5, -55);
+        deskGroup.add(cup);
+
+        // Hyper-Realistic Organic Papers stacked
+        const papersGroup = new THREE.Group();
+        papersGroup.position.set(55, -7.9, -50); // Right of mouse
+        deskGroup.add(papersGroup);
+
+        const paperMat = new THREE.MeshStandardMaterial({
+          color: 0xfdfdfd,
+          roughness: 0.9,
+          metalness: 0.05,
+          side: THREE.DoubleSide,
+        });
+
+        for (let p = 0; p < 5; p++) {
+          // High density plane for vertex displacement
+          const pGeom = new THREE.PlaneBufferGeometry(14, 20, 64, 64);
+          const posAttr = pGeom.attributes.position;
+          const v = new THREE.Vector3();
+          for (let i = 0; i < posAttr.count; i++) {
+            v.fromBufferAttribute(posAttr, i);
+            // Complex mathematical curl using sine waves mapped to UVs
+            const curlX = Math.sin(v.x * 0.2 + p) * 0.3;
+            const curlY = Math.cos(v.y * 0.2 - p * 0.5) * 0.4;
+            // Soft edge lift towards the corners
+            const edgeDist =
+              Math.pow(Math.abs(v.x) / 7.0, 2.0) +
+              Math.pow(Math.abs(v.y) / 10.0, 2.0);
+            const lift = Math.pow(edgeDist, 1.5) * 0.8;
+            v.z += curlX + curlY + lift;
+            posAttr.setXYZ(i, v.x, v.y, v.z);
+          }
+          pGeom.computeVertexNormals();
+
+          const sheet = new THREE.Mesh(pGeom, paperMat);
+          sheet.rotation.x = -Math.PI / 2;
+          // Organic stacking
+          sheet.position.y = p * 0.25;
+          sheet.rotation.z = (Math.random() - 0.5) * 0.3 + p * 0.08;
+          sheet.position.x = (Math.random() - 0.5) * 2.0;
+          sheet.position.z = (Math.random() - 0.5) * 2.0;
+
+          // Add a sleek metallic fountain pen on the top paper
+          if (p === 4) {
+            const penGeom = new THREE.CylinderBufferGeometry(0.4, 0.4, 12, 32);
+            const penMat = new THREE.MeshPhysicalMaterial({
+              color: 0x111111,
+              metalness: 0.8,
+              roughness: 0.2,
+              clearcoat: 1.0,
+            });
+            const pen = new THREE.Mesh(penGeom, penMat);
+            pen.rotation.z = Math.PI / 2;
+            pen.rotation.y = 0.6;
+            pen.position.set(2, 0.6, 4);
+
+            const penTipGeom = new THREE.ConeBufferGeometry(0.4, 1.5, 32);
+            const penTipMat = new THREE.MeshStandardMaterial({
+              color: 0xdddddd,
+              metalness: 1.0,
+              roughness: 0.1,
+            });
+            const penTip = new THREE.Mesh(penTipGeom, penTipMat);
+            penTip.position.y = 6.75;
+            pen.add(penTip);
+
+            const penGoldRingGeom = new THREE.CylinderBufferGeometry(
+              0.42,
+              0.42,
+              0.5,
+              32,
+            );
+            const penGoldMat = new THREE.MeshStandardMaterial({
+              color: 0xd4af37,
+              metalness: 0.9,
+              roughness: 0.2,
+            });
+            const penRing = new THREE.Mesh(penGoldRingGeom, penGoldMat);
+            penRing.position.y = 5.0;
+            pen.add(penRing);
+
+            const penClipGeom = new THREE.BoxBufferGeometry(0.2, 5, 0.4);
+            const penClip = new THREE.Mesh(penClipGeom, penGoldMat);
+            penClip.position.set(0.4, -3, 0);
+            pen.add(penClip);
+
+            sheet.add(pen);
+          }
+          papersGroup.add(sheet);
+        }
+
+        // === 3. Prisma Óptico de Cristal (Artefacto Refractivo) ===
+        const crystalGroup = new THREE.Group();
+        crystalGroup.position.set(55, -5.5, -70); // Arriba de los papeles (un poco más al fondo)
+        deskGroup.add(crystalGroup);
+
+        const crystalGeom = new THREE.IcosahedronBufferGeometry(2.5, 0);
+        const crystalMat = new THREE.MeshPhysicalMaterial({
+          color: 0xffffff,
+          transmission: 1.0, // Vidrio puro
+          opacity: 1.0,
+          metalness: 0.1,
+          roughness: 0.05,
+          ior: 1.52, // Índice de refracción del cristal
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.1,
+        });
+        const crystal = new THREE.Mesh(crystalGeom, crystalMat);
+        crystal.rotation.set(0.5, 0.8, 0.2); // Ángulo interesante para la refracción
+        crystalGroup.add(crystal);
+
+        // === 4. Cuna de Newton (Hiperrealista Metálico) ===
+        const newtonGroup = new THREE.Group();
+        newtonGroup.position.set(-55, -7.7, -85); // Lado izquierdo, al fondo
+        newtonGroup.rotation.y = 0.6; // Ligeramente en diagonal
+        deskGroup.add(newtonGroup);
+
+        // Base pesada de madera oscura
+        const nBaseGeom = new THREE.BoxBufferGeometry(18, 0.6, 12);
+        const nBaseMat = new THREE.MeshStandardMaterial({
+          color: 0x0a0a0a,
+          roughness: 0.8,
+          metalness: 0.1,
+        });
+        const nBase = new THREE.Mesh(nBaseGeom, nBaseMat);
+        newtonGroup.add(nBase);
+
+        // Material Metálico Cromado Perfecto
+        const nChromeMat = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          roughness: 0.05,
+          metalness: 1.0, // Reflejo máximo
+        });
+
+        // Estructura (Arcos / Postes)
+        const nFrameGeom = new THREE.CylinderBufferGeometry(0.3, 0.3, 14, 32);
+        const postPositions = [
+          [-8, 4.5],
+          [8, 4.5],
+          [-8, -4.5],
+          [8, -4.5],
+        ];
+        postPositions.forEach((pos) => {
+          const post = new THREE.Mesh(nFrameGeom, nChromeMat);
+          post.position.set(pos[0], 7, pos[1]);
+          newtonGroup.add(post);
+        });
+
+        const barGeom = new THREE.CylinderBufferGeometry(0.3, 0.3, 16.6, 32);
+        [-4.5, 4.5].forEach((z) => {
+          const bar = new THREE.Mesh(barGeom, nChromeMat);
+          bar.rotation.z = Math.PI / 2;
+          bar.position.set(0, 14, z);
+          newtonGroup.add(bar);
+        });
+
+        // Esferas y Cuerdas
+        const nSphereGeom = new THREE.SphereBufferGeometry(1.5, 64, 64);
+        const nStringGeom = new THREE.CylinderBufferGeometry(
+          0.02,
+          0.02,
+          10.5,
+          8,
+        );
+        const stringMat = new THREE.MeshBasicMaterial({ color: 0x777777 });
+
+        // Animar lógicamente la posición de las esferas (una en movimiento)
+        for (let i = 0; i < 5; i++) {
+          const xOffset = -6 + i * 3.0;
+
+          // La primera esfera está suspendida en el aire con energía potencial
+          const angle = i === 0 ? 0.6 : 0;
+
+          const pendulum = new THREE.Group();
+          pendulum.position.set(xOffset, 14, 0); // Eje de pivote
+          pendulum.rotation.z = angle;
+
+          const sphere = new THREE.Mesh(nSphereGeom, nChromeMat);
+          sphere.position.set(0, -10, 0);
+          pendulum.add(sphere);
+
+          // Cuerdas formando una 'V' térmica
+          const string1 = new THREE.Mesh(nStringGeom, stringMat);
+          string1.position.set(0, -5.0, 2.25);
+          string1.rotation.x = -0.45; // Angulada hacia la barra superior
+          pendulum.add(string1);
+
+          const string2 = new THREE.Mesh(nStringGeom, stringMat);
+          string2.position.set(0, -5.0, -2.25);
+          string2.rotation.x = 0.45;
+          pendulum.add(string2);
+
+          newtonGroup.add(pendulum);
+        }
+
+        // === 5. Planta Paramétrica (Bonsái Suculenta en Maceta) ===
+        const plantGroup = new THREE.Group();
+        // Ocupando el espacio libre dejado por la lámpara
+        plantGroup.position.set(-78, -8, -65);
+        deskGroup.add(plantGroup);
+
+        // Maceta de Cerámica Mate
+        const potGeom = new THREE.CylinderBufferGeometry(5, 3.5, 6, 64);
+        const potMat = new THREE.MeshStandardMaterial({
+          color: 0xeaeaea,
+          roughness: 0.3,
+          metalness: 0.1,
+        });
+        const pot = new THREE.Mesh(potGeom, potMat);
+        pot.position.y = 3;
+        plantGroup.add(pot);
+
+        // Tierra Sintética
+        const soilGeom = new THREE.CylinderBufferGeometry(4.8, 4.8, 0.2, 64);
+        const soilMat = new THREE.MeshStandardMaterial({
+          color: 0x221105,
+          roughness: 1.0,
+        });
+        const soil = new THREE.Mesh(soilGeom, soilMat);
+        soil.position.y = 5.8;
+        plantGroup.add(soil);
+
+        // Generación Matemática de Hojas de Suculenta (Espiral de Fibonacci)
+        const leafColor1 = new THREE.Color(0x2d4c1e); // Verde oscuro
+        const leafColor2 = new THREE.Color(0x76b041); // Verde brillante
+        const leafGeom = new THREE.SphereBufferGeometry(1, 32, 32);
+
+        const leafCount = 60;
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5 grados
+
+        for (let i = 0; i < leafCount; i++) {
+          const radius = Math.sqrt(i) * 0.45;
+          const theta = i * goldenAngle;
+
+          const leafMat = new THREE.MeshStandardMaterial({
+            color: leafColor1.clone().lerp(leafColor2, i / leafCount),
+            roughness: 0.5,
+            metalness: 0.05,
+          });
+
+          const leaf = new THREE.Mesh(leafGeom, leafMat);
+
+          // Compresión y estiramiento para fomar la hoja carnosa
+          const size = 0.4 + (i / leafCount) * 0.9;
+          leaf.scale.set(0.7 * size, 0.25 * size, 2.2 * size);
+
+          const x = radius * Math.cos(theta);
+          const z = radius * Math.sin(theta);
+          // Caída orgánica dependiendo del radio
+          const y =
+            6.0 + (1 - i / leafCount) * 1.5 - Math.pow(radius, 2) * 0.12;
+
+          leaf.position.set(x, y, z);
+          leaf.lookAt(new THREE.Vector3(x * 2, y + 5, z * 2));
+
+          plantGroup.add(leaf);
+        }
+

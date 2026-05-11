@@ -1,0 +1,920 @@
+        // Window
+        const winGeom = new THREE.PlaneBufferGeometry(120, 80);
+        const winMat = new THREE.MeshStandardMaterial({
+          color: 0x050a15,
+          roughness: 0.1,
+          emissive: 0x02040a,
+        });
+        const win = new THREE.Mesh(winGeom, winMat);
+        win.position.set(-120, 30, -199);
+        roomGroup.add(win);
+
+        const winFrameGeom = new THREE.BoxBufferGeometry(124, 84, 4);
+        const winFrameMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+        const winFrame = new THREE.Mesh(winFrameGeom, winFrameMat);
+        winFrame.position.set(-120, 30, -199);
+        roomGroup.add(winFrame);
+
+        const winHBar = new THREE.BoxBufferGeometry(124, 2, 6);
+        const wHB = new THREE.Mesh(winHBar, winFrameMat);
+        wHB.position.set(-120, 30, -199);
+        roomGroup.add(wHB);
+
+        const winVBar = new THREE.BoxBufferGeometry(2, 84, 6);
+        const wVB = new THREE.Mesh(winVBar, winFrameMat);
+        wVB.position.set(-120, 30, -199);
+        roomGroup.add(wVB);
+
+        // Since we are not using RectAreaLight, add a point light for moonlight
+        const winLight = new THREE.PointLight(0x6699ff, 1.0, 300);
+        winLight.position.set(-120, 30, -180);
+        roomGroup.add(winLight);
+
+        // Ceiling Light (Ultra-Realistic LED Panel)
+        const ceilLightGroup = new THREE.Group();
+        ceilLightGroup.position.set(0, 164, 0); // slightly below ceiling
+        roomGroup.add(ceilLightGroup);
+
+        const ceilBaseGeom = new THREE.BoxBufferGeometry(80, 2, 80);
+        const ceilBaseMat = new THREE.MeshStandardMaterial({
+          color: 0x111111,
+          metalness: 0.8,
+          roughness: 0.2,
+        });
+        const ceilBase = new THREE.Mesh(ceilBaseGeom, ceilBaseMat);
+        ceilLightGroup.add(ceilBase);
+
+        const ceilFrameGeom = new THREE.BoxBufferGeometry(84, 4, 84);
+        const ceilFrameMat = new THREE.MeshStandardMaterial({
+          color: 0x222222,
+          metalness: 0.9,
+          roughness: 0.1,
+        });
+        const ceilFrame = new THREE.Mesh(ceilFrameGeom, ceilFrameMat);
+        ceilLightGroup.add(ceilFrame);
+
+        const ceilDiffGeom = new THREE.PlaneBufferGeometry(76, 76);
+        const ceilDiffMat = new THREE.MeshBasicMaterial({ color: 0xffffee });
+        const ceilDiff = new THREE.Mesh(ceilDiffGeom, ceilDiffMat);
+        ceilDiff.rotation.x = Math.PI / 2;
+        ceilDiff.position.y = -2.1;
+        ceilLightGroup.add(ceilDiff);
+
+        const roomLight = new THREE.PointLight(0xffffee, 0.35, 1200, 1.2);
+        roomLight.position.set(0, -5, 0);
+        ceilLightGroup.add(roomLight);
+
+        const roomAmbient = new THREE.AmbientLight(0xffffee, 0.35 * 0.3); // extra ambient light for better coverage
+        ceilLightGroup.add(roomAmbient);
+
+        window.roomLight = roomLight;
+        window.roomAmbient = roomAmbient;
+        window.ceilDiffMat = ceilDiffMat;
+
+        // 5. Wall Painting (Alioth Logo)
+        const frameWidth = 120;
+        const frameHeight = 90;
+        const frameDepth = 2;
+
+        const frameGeom = new THREE.BoxBufferGeometry(
+          frameWidth,
+          frameHeight,
+          frameDepth,
+        );
+        const frameMat = new THREE.MeshStandardMaterial({
+          color: 0x050505,
+          roughness: 0.8,
+          metalness: 0.5,
+        });
+        const frameMesh = new THREE.Mesh(frameGeom, frameMat);
+        // Position it on the right side of the back wall
+        frameMesh.position.set(100, 60, -198);
+        roomGroup.add(frameMesh);
+
+        // Canvas/Image for the painting
+        const logoCanvas = document.createElement("canvas");
+        logoCanvas.width = 2048;
+        logoCanvas.height = 1536;
+        const ctx = logoCanvas.getContext("2d");
+
+        // Background
+        const grad = ctx.createRadialGradient(1024, 768, 0, 1024, 768, 1200);
+        grad.addColorStop(0, "#1a1d24");
+        grad.addColorStop(1, "#050608");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 2048, 1536);
+
+        ctx.save();
+        ctx.translate(1024, 650);
+
+        // Dark Pyramid Background Glow
+        ctx.shadowColor = "rgba(212, 175, 55, 0.4)";
+        ctx.shadowBlur = 150;
+
+        // Pyramid
+        ctx.beginPath();
+        ctx.moveTo(0, -350);
+        ctx.lineTo(-350, 250);
+        ctx.lineTo(350, 250);
+        ctx.closePath();
+
+        const pyrGrad = ctx.createLinearGradient(0, -350, 0, 250);
+        pyrGrad.addColorStop(0, "#222");
+        pyrGrad.addColorStop(1, "#000");
+        ctx.fillStyle = pyrGrad;
+        ctx.fill();
+
+        // Pyramid Highlights
+        ctx.beginPath();
+        ctx.moveTo(0, -350);
+        ctx.lineTo(0, 250);
+        ctx.lineTo(350, 250);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+        ctx.fill();
+
+        ctx.shadowBlur = 0; // reset
+
+        // Gold Orbits
+        ctx.strokeStyle = "#d4af37";
+        ctx.lineWidth = 14;
+
+        for (let i = 0; i < 3; i++) {
+          ctx.save();
+          ctx.rotate((i * Math.PI) / 3);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 450, 150, 0, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Add nodes on orbits
+          ctx.fillStyle = "#ffdf70";
+          ctx.shadowColor = "#ffdf70";
+          ctx.shadowBlur = 40;
+
+          ctx.beginPath();
+          ctx.arc(450, 0, 30, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(-450, 0, 30, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+
+        // Center Core
+        ctx.beginPath();
+        ctx.arc(0, 0, 70, 0, Math.PI * 2);
+        const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 70);
+        coreGrad.addColorStop(0, "#ffffff");
+        coreGrad.addColorStop(0.3, "#ffdf70");
+        coreGrad.addColorStop(1, "#d4af37");
+        ctx.fillStyle = coreGrad;
+        ctx.shadowColor = "#ffcf40";
+        ctx.shadowBlur = 100;
+        ctx.fill();
+        ctx.restore();
+
+        // Text
+        ctx.shadowBlur = 0;
+        ctx.font = 'bold 220px "Arial", sans-serif';
+        ctx.textAlign = "center";
+
+        // Alioth Gold Gradient
+        const textGrad = ctx.createLinearGradient(0, 1050, 0, 1250);
+        textGrad.addColorStop(0, "#f9e596");
+        textGrad.addColorStop(0.5, "#d4af37");
+        textGrad.addColorStop(1, "#997212");
+        ctx.fillStyle = textGrad;
+
+        ctx.fillText("ALIOTH", 1024, 1250);
+
+        // Subtitle
+        ctx.font = '65px "Arial", sans-serif';
+        const subtitle = "A G E N T I C   O R C H E S T R A T I O N";
+        ctx.fillStyle = "#a58020";
+        ctx.fillText(subtitle, 1024, 1380);
+
+        const logoTexture = new THREE.CanvasTexture(logoCanvas);
+        logoTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+        // Actual painting mesh
+        const canvasMeshGeom = new THREE.PlaneBufferGeometry(
+          frameWidth - 4,
+          frameHeight - 4,
+        );
+        const paintingMat = new THREE.MeshStandardMaterial({
+          map: logoTexture,
+          roughness: 0.3,
+          metalness: 0.1,
+        });
+        const paintingMesh = new THREE.Mesh(canvasMeshGeom, paintingMat);
+        paintingMesh.position.set(100, 60, -196.9);
+        roomGroup.add(paintingMesh);
+
+        // Spotlight for the painting
+        const paintingLight = new THREE.SpotLight(
+          0xffeedd,
+          2.0,
+          200,
+          Math.PI / 5,
+          0.8,
+          1,
+        );
+        paintingLight.position.set(100, 120, -100);
+        paintingLight.target = paintingMesh;
+        roomGroup.add(paintingLight);
+
+        const coreLight = new THREE.PointLight(0x00ffff, 2, 50);
+        orchestrationGroup.add(coreLight);
+
+        const wireframeMaterial = new THREE.MeshStandardMaterial({
+          color: 0x0088ff,
+          emissive: 0x0044aa,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.8,
+        });
+
+        const solidMaterial = new THREE.MeshPhysicalMaterial({
+          color: 0x050510,
+          emissive: 0x001133,
+          metalness: 0.9,
+          roughness: 0.1,
+          clearcoat: 1.0,
+          transparent: true,
+          opacity: 0.9,
+        });
+
+        // === NODE 0: THE ORCHESTRATOR ===
+        const coreGeometry = new THREE.IcosahedronBufferGeometry(3, 2);
+
+        const coreVertexShader = \`
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            uniform float time;
+            void main() {
+                vUv = uv;
+                vPosition = position;
+                vec3 pos = position;
+                float pulse = sin(pos.x * 2.0 + time) * cos(pos.y * 2.0 + time) * 0.1;
+                pos += normal * pulse;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+        \`;
+
+        const coreFragmentShader = \`
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            uniform float time;
+            void main() {
+                vec2 uv = vUv * 2.0 - 1.0;
+                float d = length(uv);
+                float glow = 0.5 + 0.5 * sin(d * 10.0 - time * 3.0);
+                vec3 color = mix(vec3(0.0, 0.2, 0.5), vec3(0.0, 1.0, 1.0), glow);
+                
+                float noise = fract(sin(dot(vPosition.xy ,vec2(12.9898,78.233))) * 43758.5453);
+                color *= mix(0.8, 1.2, noise);
+                
+                float fresnel = dot(normalize(vPosition), vec3(0.0, 0.0, 1.0));
+                gl_FragColor = vec4(color, 0.8 + 0.2 * fresnel);
+            }
+        \`;
+
+        const coreMaterial = new THREE.ShaderMaterial({
+          vertexShader: coreVertexShader,
+          fragmentShader: coreFragmentShader,
+          uniforms: { time: { value: 0.0 } },
+          transparent: true,
+        });
+
+        const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+        orchestrationGroup.add(coreMesh);
+
+        const coreWireframe = new THREE.Mesh(
+          new THREE.IcosahedronBufferGeometry(3.3, 1),
+          wireframeMaterial.clone(),
+        );
+        coreWireframe.material.color.setHex(0x00ffff);
+        coreWireframe.material.emissive.setHex(0x0088aa);
+        coreMesh.add(coreWireframe);
+
+        // === LAYOUT LOGIC ===
+        const layoutCircular = {
+          core: new THREE.Vector3(0, 22, 0),
+          packager: new THREE.Vector3(0, -22, 0),
+          agents: Array.from({ length: 6 }).map((_, i) => {
+            const angle = (i / 6) * Math.PI * 2;
+            return new THREE.Vector3(
+              Math.cos(angle) * 24,
+              4,
+              Math.sin(angle) * 24,
+            );
+          }),
+          innerAgents: [
+            new THREE.Vector3(-6, -2, 0),
+            new THREE.Vector3(6, -2, 0),
+          ],
+        };
+
+        const layoutPyramid = {
+          core: new THREE.Vector3(0, 24, 0),
+          packager: new THREE.Vector3(0, -24, 0),
+          agents: [
+            new THREE.Vector3(-12, 12, 0),
+            new THREE.Vector3(12, 12, 0),
+            new THREE.Vector3(-20, -5, -8),
+            new THREE.Vector3(-8, -5, 8),
+            new THREE.Vector3(8, -5, -8),
+            new THREE.Vector3(20, -5, 8),
+          ],
+          innerAgents: [
+            new THREE.Vector3(-5, 3, 0),
+            new THREE.Vector3(5, 3, 0),
+          ],
+        };
+
+        let currentLayout = "circular";
+
+        // === NODES 1-6: SUB-AGENTS ===
+        const agents = [];
+        const agentNames = [
+          "Agente Cognitivo",
+          "Agente Analítico",
+          "Agente Auditor",
+          "Agente Ejecutor",
+          "Agente de Integración",
+          "Agente de Seguridad",
+        ];
+
+        // === AURA SHADERS ===
+        const auraVertexShader = \`
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            void main() {
+                vUv = uv;
+                vNormal = normalize(normalMatrix * normal);
+                vPosition = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        \`;
+
+        const auraFragmentShader = \`
+            uniform float uTime;
+            uniform float uActivation;
+            uniform vec3 uColor;
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+
+            void main() {
+                float rim = pow(1.0 - abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 2.0);
+                float band = sin(vPosition.y * 10.0 - uTime * 4.0);
+                float bandMask = smoothstep(0.8, 1.0, band);
+                
+                float noise = fract(sin(dot(floor(vUv * 50.0), vec2(12.9898, 78.233))) * 43758.5453);
+                noise = step(0.8, noise) * 0.5;
+                
+                float equator = smoothstep(0.05, 0.0, abs(vPosition.y));
+                float eqPulse = (0.5 + 0.5 * sin(uTime * 8.0)) * equator;
+
+                float finalAlpha = (rim * 0.4 + bandMask * 0.6 + noise + eqPulse) * uActivation;
+                finalAlpha *= smoothstep(0.0, 0.5, rim);
+
+                gl_FragColor = vec4(uColor + (eqPulse * vec3(1.0)), finalAlpha * 0.8);
+            }
+        \`;
+        const auraGeometry = new THREE.SphereBufferGeometry(2.5, 32, 32);
+        const auraMaterialTpl = new THREE.ShaderMaterial({
+          vertexShader: auraVertexShader,
+          fragmentShader: auraFragmentShader,
+          uniforms: {
+            uTime: { value: 0 },
+            uActivation: { value: 0 },
+            uColor: { value: new THREE.Color(0x00ffff) },
+          },
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        });
+
+        const primitives = [
+          () => new THREE.OctahedronBufferGeometry(1.5, 0),
+          () => new THREE.TetrahedronBufferGeometry(1.5, 0),
+          () => new THREE.BoxBufferGeometry(1.5, 1.5, 1.5),
+          () => new THREE.TorusBufferGeometry(1.2, 0.4, 8, 16),
+          () => new THREE.DodecahedronBufferGeometry(1.2, 0),
+          () => new THREE.IcosahedronBufferGeometry(1.2, 0),
+        ];
+
+        // === ANALYTIC SHADERS ===
+        const analyticVertexShader = \`
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            varying vec3 vNormal;
+            void main() {
+                vUv = uv;
+                vPosition = position;
+                vNormal = normalize(normalMatrix * normal);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        \`;
+
+        const analyticFragmentShader = \`
+            uniform float uTime;
+            uniform float uActivation;
+            uniform float uPulse;
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            varying vec3 vNormal;
+
+            void main() {
+                float scan = fract(vPosition.y * 3.0 - uTime * 1.5);
+                float scanLine = smoothstep(0.48, 0.5, scan) * smoothstep(0.52, 0.5, scan);
+                
+                float rim = pow(1.0 - max(0.0, dot(vNormal, vec3(0.0, 0.0, 1.0))), 2.0);
+                
+                vec3 baseColor = vec3(0.0, 0.4, 0.8);
+                vec3 activeColor = vec3(0.0, 1.0, 1.0);
+                vec3 color = mix(baseColor, activeColor, uActivation + uPulse);
+                
+                color += scanLine * vec3(0.5, 1.0, 1.0) * (0.8 + uActivation);
+                
+                float alpha = 0.5 + rim * 0.4 + uActivation * 0.4;
+                
+                gl_FragColor = vec4(color, alpha);
+            }
+        \`;
+
+        // === AUDITOR SHADERS ===
+        const auditorBeamVertexShader = \`
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        \`;
+
+        const auditorBeamFragmentShader = \`
+            uniform float uTime;
+            uniform float uActivation;
+            varying vec2 vUv;
+
+            void main() {
+                float depth = vUv.y; 
+                float fade = smoothstep(0.0, 0.4, depth); 
+                
+                float stripes = fract(depth * 15.0 - uTime * 3.0);
+                float line = smoothstep(0.4, 0.6, stripes) * smoothstep(0.8, 0.6, stripes);
+                
+                float noise = fract(sin(dot(vUv, vec2(12.9898, 78.233)) + uTime) * 43758.5453);
+                
+                vec3 baseCol = vec3(0.1, 0.9, 0.4); 
+                vec3 activeCol = vec3(1.0, 0.8, 0.1); 
+                vec3 finalCol = mix(baseCol, activeCol, uActivation);
+                
+                float alpha = fade * (0.1 + line * 0.3 + noise * 0.1) * (0.3 + uActivation * 0.7);
+                
+                gl_FragColor = vec4(finalCol, alpha);
+            }
+        \`;
+
+        const auditorDiskFragmentShader = \`
+            uniform float uTime;
+            uniform float uActivation;
+            varying vec2 vUv;
+            void main() {
+                vec2 pc = vUv - 0.5;
+                float dist = length(pc) * 2.0; 
+                if (dist > 1.0) discard;
+                
+                float rings = fract(dist * 6.0 - uTime * 2.0);
+                float rAlpha = smoothstep(0.8, 1.0, rings);
+                
+                float angle = atan(pc.y, pc.x);
+                float sweep = smoothstep(0.0, 0.15, fract(angle / 6.2831 + uTime * 3.0));
+                
+                vec3 col = mix(vec3(0.1, 0.9, 0.4), vec3(1.0, 0.8, 0.1), uActivation);
+                
+                float alpha = (rAlpha * 0.4 + sweep * 0.6) * (1.0 - dist) * (0.3 + uActivation * 0.7);
+                gl_FragColor = vec4(col, alpha);
+            }
+        \`;
+
+        // === COGNITIVE SHADERS ===
+        const cognitiveVertexShader = \`
+            varying vec2 vUv;
+            varying vec3 vPos;
+            void main() {
+                vUv = uv;
+                vPos = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        \`;
+
+        const cognitiveFragmentShader = \`
+            uniform float uTime;
+            uniform float uActivation;
+            varying vec2 vUv;
+            varying vec3 vPos;
+            void main() {
+                float n = sin(vPos.x*4.0 + uTime*2.0)*sin(vPos.y*4.0 - uTime)*sin(vPos.z*4.0 + uTime);
+                float intensity = n * 0.5 + 0.5;
+                vec3 baseCol = vec3(0.3, 0.0, 0.6);
+                vec3 activeCol = vec3(1.0, 0.2, 0.8);
+                vec3 finalCol = mix(baseCol, activeCol, intensity + uActivation);
+                float alpha = 0.6 + intensity * 0.4 + uActivation * 0.5;
+                gl_FragColor = vec4(finalCol, min(alpha, 1.0));
+            }
+        \`;
+
+        // === SECURITY SHADERS ===
+        const securityVertexShader = \`
+            varying vec2 vUv;
+            varying vec3 vPos;
+            void main() {
+                vUv = uv;
+                vPos = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        \`;
+
+        const securityFragmentShader = \`
+            uniform float uTime;
+            uniform float uActivation;
+            varying vec2 vUv;
+            varying vec3 vPos;
+            void main() {
+                float a = dot(vPos, vec3(1.0, 0.0, 0.0)) * 6.0;
+                float b = dot(vPos, vec3(0.5, 0.866, 0.0)) * 6.0;
+                float c = dot(vPos, vec3(-0.5, 0.866, 0.0)) * 6.0;
+                float grid = sin(a)*sin(b)*sin(c);
+                float edge = smoothstep(0.0, 0.15, abs(grid));
+                
+                float scan = fract(vPos.y * 2.0 - uTime);
+                float scanline = smoothstep(0.9, 1.0, scan);
+                
+                vec3 idleCol = vec3(0.1, 0.0, 0.3);
+                vec3 activeCol = vec3(1.0, 0.0, 0.2);
+                vec3 edgeCol = mix(vec3(0.5, 0.1, 0.8), vec3(1.0, 0.0, 0.0), uActivation + scanline);
+                
+                vec3 finalCol = mix(edgeCol, mix(idleCol, activeCol, uActivation), edge);
+                float alpha = (1.0 - edge) * (0.3 + uActivation * 0.7 + scanline * 0.5);
+                gl_FragColor = vec4(finalCol, min(alpha, 1.0));
+            }
+        \`;
+
+        for (let i = 0; i < 6; i++) {
+          const group = new THREE.Group();
+          group.position.copy(layoutCircular.agents[i]);
+          const auraMat = auraMaterialTpl.clone();
+
+          if (i === 1) {
+            // Agente Analítico
+            const analyticCoreMat = new THREE.ShaderMaterial({
+              vertexShader: analyticVertexShader,
+              fragmentShader: analyticFragmentShader,
+              uniforms: {
+                uTime: { value: 0 },
+                uActivation: { value: 0 },
+                uPulse: { value: 0 },
+              },
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+              wireframe: false,
+            });
+
+            const analyticCore = new THREE.Mesh(
+              new THREE.OctahedronBufferGeometry(1.2, 1),
+              analyticCoreMat,
+            );
+            group.add(analyticCore);
+
+            const rings = [];
+            const matPlane = new THREE.MeshBasicMaterial({
+              color: 0x00ffff,
+              transparent: true,
+              opacity: 0.3,
+              side: THREE.DoubleSide,
+            });
+            for (let j = 0; j < 3; j++) {
+              const planeGeom = new THREE.RingBufferGeometry(
+                1.5 + j * 0.4,
+                1.55 + j * 0.4,
+                32,
+              );
+              const ringObj = new THREE.Mesh(planeGeom, matPlane.clone());
+              ringObj.rotation.x = Math.random() * Math.PI;
+              ringObj.rotation.y = Math.random() * Math.PI;
+              rings.push(ringObj);
+              group.add(ringObj);
+            }
+
+            auraMat.uniforms.uColor.value.setHex(0x00aaff);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              auraMat: auraMat,
+              isAnalytic: true,
+              analyticCore: analyticCore,
+              analyticRings: rings,
+            };
+          } else if (i === 2) {
+            // Agente Auditor
+            const coreGeom = new THREE.CylinderBufferGeometry(0.8, 0.2, 1.5, 6);
+            const coreMat = new THREE.MeshStandardMaterial({
+              color: 0x222222,
+              emissive: 0x003311,
+              metalness: 0.9,
+              roughness: 0.2,
+            });
+            const auditorCore = new THREE.Mesh(coreGeom, coreMat);
+            group.add(auditorCore);
+
+            const eyeGeom = new THREE.SphereBufferGeometry(0.3, 16, 16);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00ff66 });
+            const eye = new THREE.Mesh(eyeGeom, eyeMat);
+            eye.position.y = -0.75;
+            auditorCore.add(eye);
+
+            const beamGeom = new THREE.ConeBufferGeometry(2.5, 5, 32, 1, true);
+            beamGeom.translate(0, -2.5, 0);
+
+            const beamMat = new THREE.ShaderMaterial({
+              vertexShader: auditorBeamVertexShader,
+              fragmentShader: auditorBeamFragmentShader,
+              uniforms: {
+                uTime: { value: 0 },
+                uActivation: { value: 0 },
+              },
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            });
+            const auditorBeam = new THREE.Mesh(beamGeom, beamMat);
+            auditorBeam.position.y = -0.75;
+            group.add(auditorBeam);
+
+            const diskGeom = new THREE.PlaneBufferGeometry(5, 5);
+            const diskMat = new THREE.ShaderMaterial({
+              vertexShader: auditorBeamVertexShader,
+              fragmentShader: auditorDiskFragmentShader,
+              uniforms: {
+                uTime: { value: 0 },
+                uActivation: { value: 0 },
+              },
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            });
+            const auditorDisk = new THREE.Mesh(diskGeom, diskMat);
+            auditorDisk.rotation.x = -Math.PI / 2;
+            auditorDisk.position.y = -5.75;
+            group.add(auditorDisk);
+
+            const satellites = [];
+            const satGeom = new THREE.OctahedronBufferGeometry(0.3, 0);
+            const satMat = new THREE.MeshBasicMaterial({
+              color: 0x00ffaa,
+              wireframe: true,
+            });
+            for (let s = 0; s < 3; s++) {
+              const sat = new THREE.Mesh(satGeom, satMat.clone());
+              satellites.push({ mesh: sat, angle: (s / 3) * Math.PI * 2 });
+              group.add(sat);
+            }
+
+            auraMat.uniforms.uColor.value.setHex(0x00ff66);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              auraMat: auraMat,
+              isAuditor: true,
+              auditorCore: auditorCore,
+              auditorEye: eye,
+              auditorBeam: auditorBeam,
+              auditorDisk: auditorDisk,
+              satellites: satellites,
+            };
+          } else if (i === 0) {
+            // Agente Cognitivo
+            const coreGeom = new THREE.IcosahedronBufferGeometry(1.2, 2);
+            const coreMat = new THREE.ShaderMaterial({
+              vertexShader: cognitiveVertexShader,
+              fragmentShader: cognitiveFragmentShader,
+              uniforms: { uTime: { value: 0 }, uActivation: { value: 0 } },
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+            });
+            const cogCore = new THREE.Mesh(coreGeom, coreMat);
+            group.add(cogCore);
+
+            const nodes = [];
+            const nodeGeom = new THREE.SphereBufferGeometry(0.2, 8, 8);
+            const nodeMat = new THREE.MeshBasicMaterial({ color: 0xaa22ff });
+            for (let n = 0; n < 5; n++) {
+              const mesh = new THREE.Mesh(nodeGeom, nodeMat.clone());
+              nodes.push({
+                mesh,
+                offset: Math.random() * Math.PI * 2,
+                speed: 0.5 + Math.random(),
+              });
+              group.add(mesh);
+            }
+
+            auraMat.uniforms.uColor.value.setHex(0xaa22ff);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              isCognitive: true,
+              cogCore: cogCore,
+              nodes: nodes,
+              auraMat: auraMat,
+            };
+          } else if (i === 3) {
+            // Agente Ejecutor
+            const coreGeom = new THREE.CylinderBufferGeometry(0.0, 0.8, 2.5, 4);
+            const coreMat = new THREE.MeshStandardMaterial({
+              color: 0xff5500,
+              emissive: 0x662200,
+              metalness: 0.2,
+              roughness: 0.4,
+            });
+            const execCore = new THREE.Mesh(coreGeom, coreMat);
+
+            const execCoreBottom = new THREE.Mesh(coreGeom, coreMat);
+            execCoreBottom.rotation.x = Math.PI;
+            execCoreBottom.position.y = -2.5;
+            const execGroupCenter = new THREE.Group();
+            execGroupCenter.add(execCore);
+            execGroupCenter.add(execCoreBottom);
+            execGroupCenter.position.y = 1.25;
+            group.add(execGroupCenter);
+
+            const ringGeom = new THREE.TorusBufferGeometry(1.5, 0.15, 4, 12);
+            const ringMat = new THREE.MeshStandardMaterial({
+              color: 0x888888,
+              emissive: 0x222222,
+              metalness: 0.3,
+              roughness: 0.4,
+            });
+            const rings = [];
+            for (let r = 0; r < 3; r++) {
+              const ring = new THREE.Mesh(ringGeom, ringMat.clone());
+              ring.rotation.x = Math.PI / 2;
+              ring.position.y = (r - 1) * 0.8;
+              rings.push({ mesh: ring, dir: r % 2 === 0 ? 1 : -1 });
+              group.add(ring);
+            }
+
+            auraMat.uniforms.uColor.value.setHex(0xff3300);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              isExecutor: true,
+              execCoreTop: execCore,
+              execCoreBottom: execCoreBottom,
+              execGroupCenter: execGroupCenter,
+              rings: rings,
+              auraMat: auraMat,
+            };
+          } else if (i === 4) {
+            // Agente Integración
+            const centerGeom = new THREE.SphereBufferGeometry(0.5, 16, 16);
+            const centerMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const intCenter = new THREE.Mesh(centerGeom, centerMat);
+            group.add(intCenter);
+
+            const knotGeom = new THREE.TorusKnotBufferGeometry(1.0, 0.1, 64, 8);
+            const knotMat = new THREE.MeshBasicMaterial({
+              color: 0x0088ff,
+              wireframe: true,
+              transparent: true,
+              opacity: 0.8,
+              blending: THREE.AdditiveBlending,
+            });
+            const knots = [];
+            for (let k = 0; k < 3; k++) {
+              const knot = new THREE.Mesh(knotGeom, knotMat.clone());
+              knot.rotation.set(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                0,
+              );
+              knots.push({
+                mesh: knot,
+                axis: new THREE.Vector3(
+                  Math.random(),
+                  Math.random(),
+                  Math.random(),
+                ).normalize(),
+              });
+              group.add(knot);
+            }
+
+            auraMat.uniforms.uColor.value.setHex(0x00aaaa);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              isIntegration: true,
+              intCenter: intCenter,
+              knots: knots,
+              auraMat: auraMat,
+            };
+          } else if (i === 5) {
+            // Agente Seguridad
+            const coreGeom = new THREE.BoxBufferGeometry(1.5, 1.5, 1.5);
+            const coreMat = new THREE.MeshStandardMaterial({
+              color: 0x331133,
+              emissive: 0x220022,
+              metalness: 0.2,
+              roughness: 0.5,
+            });
+            const secCore = new THREE.Mesh(coreGeom, coreMat);
+            group.add(secCore);
+
+            const forcefieldGeom = new THREE.IcosahedronBufferGeometry(2.0, 2);
+            const forcefieldMat = new THREE.ShaderMaterial({
+              vertexShader: securityVertexShader,
+              fragmentShader: securityFragmentShader,
+              uniforms: { uTime: { value: 0 }, uActivation: { value: 0 } },
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+            });
+            const forcefield = new THREE.Mesh(forcefieldGeom, forcefieldMat);
+            group.add(forcefield);
+
+            auraMat.uniforms.uColor.value.setHex(0xff00ff);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              isSecurity: true,
+              secCore: secCore,
+              forcefield: forcefield,
+              auraMat: auraMat,
+            };
+          }
+
+          orchestrationGroup.add(group);
+
+          agents.push(group);
+        }

@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agentic AI Orchestration System - Alioth</title>
+    <script>
+      window.addEventListener("error", function (e) {
+        if (e.error) {
+          console.error("Detailed Error: ", e.error.stack);
+        } else {
+          console.error("Detailed Error: ", e.message);
+        }
+      });
+    </script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #050510;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: white;
+        user-select: none;
+      }
+      #canvas-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1;
+      }
+      #ui-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 2;
+      }
+      .panel {
+        position: absolute;
+        top: 2rem;
+        left: 2rem;
+        background: rgba(5, 5, 16, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(0, 255, 255, 0.2);
+        padding: 1.5rem;
+        border-radius: 12px;
+        pointer-events: auto;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+      }
+      h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.25rem;
+        font-weight: 300;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.9);
+      }
+      p.subtitle {
+        margin: 0 0 1.5rem 0;
+        font-size: 0.85rem;
+        color: #00ffff;
+        opacity: 0.8;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      button {
+        background: transparent;
+        color: #00ffff;
+        border: 1px solid #00ffff;
+        padding: 0.75rem 1.5rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 4px;
+        text-transform: uppercase;
+        position: relative;
+        overflow: hidden;
+      }
+      button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(0, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s ease;
+      }
+      button:hover::before {
+        left: 100%;
+      }
+      button:hover {
+        background: rgba(0, 255, 255, 0.1);
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      .layout-btn {
+        border-color: #aa00ff;
+        color: #aa00ff;
+      }
+      .layout-btn::before {
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(170, 0, 255, 0.2),
+          transparent
+        );
+      }
+      .layout-btn:hover {
+        background: rgba(170, 0, 255, 0.1);
+        box-shadow: 0 0 15px rgba(170, 0, 255, 0.3);
+      }
+      #collapse-btn::before {
+        display: none !important;
+      }
+      #collapse-btn:hover {
+        box-shadow: none !important;
+        background: rgba(255, 255, 255, 0.15) !important;
+      }
+      .light-control {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(0, 255, 255, 0.2);
+      }
+      .light-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .light-header label {
+        font-size: 0.75rem;
+        color: #00ffff;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        opacity: 0.8;
+        margin: 0;
+        cursor: pointer;
+      }
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 30px;
+        height: 16px;
+      }
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 255, 255, 0.1);
+        transition: 0.4s;
+        border-radius: 16px;
+        border: 1px solid rgba(0, 255, 255, 0.3);
+      }
+      .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 12px;
+        width: 12px;
+        left: 1px;
+        bottom: 1px;
+        background-color: #00ffff;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .toggle-slider {
+        background-color: rgba(0, 255, 255, 0.4);
+      }
+      input:checked + .toggle-slider:before {
+        transform: translateX(14px);
+      }
+      .slider-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+      }
+      .slider-group input[type="range"] {
+        -webkit-appearance: none;
+        width: 100%;
+        background: rgba(0, 255, 255, 0.1);
+        height: 4px;
+        border-radius: 2px;
+        outline: none;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+      }
+      .slider-group input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #00ffff;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        transition: transform 0.1s;
+      }
+      .slider-group input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+      }
+      .node-label {
+        position: absolute;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.65rem;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        font-weight: 600;
+        background: rgba(10, 20, 30, 0.6);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        padding: 4px 8px;
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        border-radius: 4px;
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+        transition:
+          opacity 0.3s,
+          color 0.3s;
+        opacity: 0.8;
+        white-space: nowrap;
+        z-index: 5;
+        will-change: transform;
+      }
+      #legend-container {
+        position: absolute;
+        bottom: 2rem;
+        right: 2rem;
+        width: 250px;
+        background: rgba(10, 15, 25, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(0, 255, 255, 0.2);
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        z-index: 20;
+        pointer-events: auto;
+        color: rgba(255, 255, 255, 0.9);
+        overflow: hidden;
+      }
+      .legend-header {
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(0, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+        cursor: pointer;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 600;
+        pointer-events: auto;
+      }
+      .legend-header:hover {
+        background: rgba(0, 255, 255, 0.2);
+      }
+      .legend-content {
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 400px;
+        overflow-y: auto;
+        transition:
+          max-height 0.4s cubic-bezier(0, 1, 0, 1),
+          padding 0.4s ease,
+          opacity 0.3s ease;
+        opacity: 1;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+      }
+      .legend-item-tag {
+        display: inline-block;
+        background: rgba(0, 255, 255, 0.15);
+        border: 1px solid rgba(0, 255, 255, 0.4);
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #00ffff;
+        font-weight: 700;
+        width: 35px;
+        text-align: center;
+        margin-right: 12px;
+        flex-shrink: 0;
+      }
+      .legend-item-name {
+        color: rgba(255, 255, 255, 0.7);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #legend-container.collapsed .legend-content {
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+      #legend-container.collapsed .legend-icon {
+        transform: rotate(180deg);
+      }
+      .legend-icon {
+        transition: transform 0.3s ease;
+      }
+      #tooltip {
+        position: absolute;
+        background: rgba(20, 5, 30, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(200, 50, 255, 0.4);
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        transform: translate(-50%, -150%);
+        color: #e0b0ff;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        z-index: 10;
+        white-space: nowrap;
+      }
+    </style>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <div id="canvas-container"></div>
+    <div
+      id="labels-container"
+      style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 5;
+      "
+    ></div>
+    <div id="ui-layer">
+      <div class="panel">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+          "
+        >
+          <h1 style="margin: 0; margin-right: 2rem">Sistema Alioth</h1>
+          <button
+            id="collapse-btn"
+            style="
+              padding: 0.5rem;
+              border: none;
+              background: transparent;
+              box-shadow: none;
+              border-radius: 8px;
+              color: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              transition: background 0.3s ease;
+            "
+            onmouseover="this.style.background = 'rgba(255,255,255,0.1)'"
+            onmouseout="this.style.background = 'transparent'"
+          >
+            <svg
+              id="collapse-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="rgba(255,255,255,0.8)"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              style="
+                transition: transform 0.4s
+                  cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                display: block;
+              "
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </button>
+        </div>
+        <div
+          id="panel-content"
+          style="transition: opacity 0.2s ease; opacity: 1"
+        >
+          <p class="subtitle" style="margin-top: 0">
+            Orquestación de IA Agéntica
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem">
+            <button id="exec-btn">EJECUTAR PROTOCOLO</button>
+            <button id="layout-btn" class="layout-btn">VISTA: PIRAMIDAL</button>
+            <div class="light-control">
+              <div class="light-header">
+                <label>Lámpara Habitación</label>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="room-light-toggle" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="slider-group">
+                <input
+                  type="range"
+                  id="room-light-slider"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value="100"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="legend-container" class="collapsed">
+        <div class="legend-header" id="legend-header">
+          <span>Directorio de Nodos</span>
+          <svg
+            class="legend-icon"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <div class="legend-content" id="legend-content"></div>
+      </div>
+      <div id="tooltip"></div>
+    </div>
+
+    <script>
+      try {
+        // === CORE ===
+        const container = document.getElementById("canvas-container");
+        const tooltip = document.getElementById("tooltip");
+        const execBtn = document.getElementById("exec-btn");
+        const layoutBtn = document.getElementById("layout-btn");
+        const roomLightToggle = document.getElementById("room-light-toggle");
+        const roomLightSlider = document.getElementById("room-light-slider");
+        const labelsContainer = document.getElementById("labels-container");
+        const collapseBtn = document.getElementById("collapse-btn");
+        const panelContent = document.getElementById("panel-content");
+        const legendContainer = document.getElementById("legend-container");
+        const legendHeader = document.getElementById("legend-header");
+
+        legendHeader.addEventListener("click", () => {
+          legendContainer.classList.toggle("collapsed");
+        });
+
+        let isPanelCollapsed = false;
+        const collapseIcon = document.getElementById("collapse-icon");
+        collapseBtn.addEventListener("click", () => {
+          isPanelCollapsed = !isPanelCollapsed;
+          if (isPanelCollapsed) {
+            panelContent.style.opacity = "0";
+            setTimeout(() => {
+              panelContent.style.display = "none";
+            }, 200);
+            collapseIcon.style.transform = "rotate(180deg)";
+          } else {
+            panelContent.style.display = "block";
+            setTimeout(() => {
+              panelContent.style.opacity = "1";
+            }, 10);
+            collapseIcon.style.transform = "rotate(0deg)";
+          }
+        });
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x0a0a0f, 0.002);
+
+        const camera = new THREE.PerspectiveCamera(
+          45,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000,
+        );
+        camera.position.set(0, 15, 160);
+
+        const renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+          powerPreference: "high-performance",
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 0, 25);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 600; // Increased to allow free navigation in the room
+        controls.minDistance = 5;
+        controls.maxPolarAngle = Math.PI; // Full vertical freedom
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+
+        // === ORCHESTRATION GROUP ===
+        const orchestrationGroup = new THREE.Group();
+        orchestrationGroup.position.set(0, 0, 25); // Move everything away from the desk
+        orchestrationGroup.scale.set(2.4, 2.4, 2.4); // Increase proportional size
+        scene.add(orchestrationGroup);
+
+        // === REALISTIC ENVIRONMENT: OFFICE ROOM ===
+        const roomGroup = new THREE.Group();
+        // Shift entire room so the desk is completely behind the visualization system
+        roomGroup.position.set(0, -45, -20);
+        scene.add(roomGroup);
+
+        // 1. Floor & Walls
+        // Floor
+        const floorGeom = new THREE.PlaneBufferGeometry(600, 600);
+        const floorMat = new THREE.MeshStandardMaterial({
+          color: 0x2a2520,
+          roughness: 0.9,
+          metalness: 0.1,
+        });
+        const floorRoom = new THREE.Mesh(floorGeom, floorMat);
+        floorRoom.rotation.x = -Math.PI / 2;
+        floorRoom.position.y = -35;
+        roomGroup.add(floorRoom);
+
+        // Walls
+        const wallBackGeom = new THREE.PlaneBufferGeometry(600, 200);
+        const wallMat = new THREE.MeshStandardMaterial({
+          color: 0xdddddd,
+          roughness: 1.0,
+        });
+        const wallBack = new THREE.Mesh(wallBackGeom, wallMat);
+        wallBack.position.set(0, 65, -200);
+        roomGroup.add(wallBack);
+
+        const wallLeft = new THREE.Mesh(wallBackGeom, wallMat);
+        wallLeft.rotation.y = Math.PI / 2;
+        wallLeft.position.set(-300, 65, 50);
+        roomGroup.add(wallLeft);
+
+        const wallRight = new THREE.Mesh(wallBackGeom, wallMat);
+        wallRight.rotation.y = -Math.PI / 2;
+        wallRight.position.set(300, 65, 50);
+        roomGroup.add(wallRight);
+
+        // === 1.1 Front Wall & Hyper-Realistic Door ===
+        // Front Wall (Behind Camera)
+        const wallFront = new THREE.Mesh(wallBackGeom, wallMat);
+        wallFront.rotation.y = Math.PI;
+        wallFront.position.set(0, 65, 350);
+        roomGroup.add(wallFront);
+
+        // Hyper-Realistic Door
+        const doorGroup = new THREE.Group();
+        // On the front wall, resting on floor (-35)
+        doorGroup.position.set(0, -35, 349.5);
+        // Face towards the center of the room (-z)
+        doorGroup.rotation.y = Math.PI;
+        roomGroup.add(doorGroup);
+
+        // Deep rich wooden material
+        const woodMat = new THREE.MeshStandardMaterial({
+          color: 0x241107,
+          roughness: 0.65,
+          metalness: 0.05,
+        });
+        // A more glossy dark variant for frame
+        const doorFrameMat = new THREE.MeshStandardMaterial({
+          color: 0x140a05,
+          roughness: 0.4,
+        });
+
+        // Frame Left/Right/Top
+        const dFrameLeft = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(4, 90, 6),
+          doorFrameMat,
+        );
+        dFrameLeft.position.set(-22, 45, 0);
+        doorGroup.add(dFrameLeft);
+
+        const dFrameRight = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(4, 90, 6),
+          doorFrameMat,
+        );
+        dFrameRight.position.set(22, 45, 0);
+        doorGroup.add(dFrameRight);
+
+        const dFrameTop = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(48, 4, 6),
+          doorFrameMat,
+        );
+        dFrameTop.position.set(0, 92, 0);
+        doorGroup.add(dFrameTop);

@@ -1,0 +1,3407 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agentic AI Orchestration System - Alioth</title>
+    <script>
+      window.addEventListener("error", function (e) {
+        if (e.error) {
+          console.error("Detailed Error: ", e.error.stack);
+        } else {
+          console.error("Detailed Error: ", e.message);
+        }
+      });
+    </script>
+    <style>
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #050510;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        color: white;
+        user-select: none;
+      }
+      #canvas-container {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        z-index: 1;
+      }
+      #ui-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 2;
+      }
+      .panel {
+        position: absolute;
+        top: 2rem;
+        left: 2rem;
+        background: rgba(5, 5, 16, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(0, 255, 255, 0.2);
+        padding: 1.5rem;
+        border-radius: 12px;
+        pointer-events: auto;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+      }
+      h1 {
+        margin: 0 0 0.5rem 0;
+        font-size: 1.25rem;
+        font-weight: 300;
+        letter-spacing: 0.1em;
+        color: rgba(255, 255, 255, 0.9);
+      }
+      p.subtitle {
+        margin: 0 0 1.5rem 0;
+        font-size: 0.85rem;
+        color: #00ffff;
+        opacity: 0.8;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      button {
+        background: transparent;
+        color: #00ffff;
+        border: 1px solid #00ffff;
+        padding: 0.75rem 1.5rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-radius: 4px;
+        text-transform: uppercase;
+        position: relative;
+        overflow: hidden;
+      }
+      button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(0, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s ease;
+      }
+      button:hover::before {
+        left: 100%;
+      }
+      button:hover {
+        background: rgba(0, 255, 255, 0.1);
+        box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      .layout-btn {
+        border-color: #aa00ff;
+        color: #aa00ff;
+      }
+      .layout-btn::before {
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(170, 0, 255, 0.2),
+          transparent
+        );
+      }
+      .layout-btn:hover {
+        background: rgba(170, 0, 255, 0.1);
+        box-shadow: 0 0 15px rgba(170, 0, 255, 0.3);
+      }
+      #collapse-btn::before {
+        display: none !important;
+      }
+      #collapse-btn:hover {
+        box-shadow: none !important;
+        background: rgba(255, 255, 255, 0.15) !important;
+      }
+      .light-control {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid rgba(0, 255, 255, 0.2);
+      }
+      .light-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .light-header label {
+        font-size: 0.75rem;
+        color: #00ffff;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        opacity: 0.8;
+        margin: 0;
+        cursor: pointer;
+      }
+      .toggle-switch {
+        position: relative;
+        display: inline-block;
+        width: 30px;
+        height: 16px;
+      }
+      .toggle-switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .toggle-slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 255, 255, 0.1);
+        transition: 0.4s;
+        border-radius: 16px;
+        border: 1px solid rgba(0, 255, 255, 0.3);
+      }
+      .toggle-slider:before {
+        position: absolute;
+        content: "";
+        height: 12px;
+        width: 12px;
+        left: 1px;
+        bottom: 1px;
+        background-color: #00ffff;
+        transition: 0.4s;
+        border-radius: 50%;
+      }
+      input:checked + .toggle-slider {
+        background-color: rgba(0, 255, 255, 0.4);
+      }
+      input:checked + .toggle-slider:before {
+        transform: translateX(14px);
+      }
+      .slider-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 0.25rem;
+      }
+      .slider-group input[type="range"] {
+        -webkit-appearance: none;
+        width: 100%;
+        background: rgba(0, 255, 255, 0.1);
+        height: 4px;
+        border-radius: 2px;
+        outline: none;
+        box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+      }
+      .slider-group input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: #00ffff;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        transition: transform 0.1s;
+      }
+      .slider-group input[type="range"]::-webkit-slider-thumb:hover {
+        transform: scale(1.2);
+      }
+      .node-label {
+        position: absolute;
+        color: rgba(255, 255, 255, 0.9);
+        font-size: 0.65rem;
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        text-transform: uppercase;
+        letter-spacing: 0.15em;
+        font-weight: 600;
+        background: rgba(10, 20, 30, 0.6);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        padding: 4px 8px;
+        border: 1px solid rgba(0, 255, 255, 0.3);
+        border-radius: 4px;
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.1);
+        transition:
+          opacity 0.3s,
+          color 0.3s;
+        opacity: 0.8;
+        white-space: nowrap;
+        z-index: 5;
+        will-change: transform;
+      }
+      #legend-container {
+        position: absolute;
+        bottom: 2rem;
+        right: 2rem;
+        width: 250px;
+        background: rgba(10, 15, 25, 0.85);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(0, 255, 255, 0.2);
+        border-radius: 8px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        z-index: 20;
+        pointer-events: auto;
+        color: rgba(255, 255, 255, 0.9);
+        overflow: hidden;
+      }
+      .legend-header {
+        padding: 12px 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: rgba(0, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+        cursor: pointer;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-weight: 600;
+        pointer-events: auto;
+      }
+      .legend-header:hover {
+        background: rgba(0, 255, 255, 0.2);
+      }
+      .legend-content {
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: 400px;
+        overflow-y: auto;
+        transition:
+          max-height 0.4s cubic-bezier(0, 1, 0, 1),
+          padding 0.4s ease,
+          opacity 0.3s ease;
+        opacity: 1;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+      }
+      .legend-item-tag {
+        display: inline-block;
+        background: rgba(0, 255, 255, 0.15);
+        border: 1px solid rgba(0, 255, 255, 0.4);
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #00ffff;
+        font-weight: 700;
+        width: 35px;
+        text-align: center;
+        margin-right: 12px;
+        flex-shrink: 0;
+      }
+      .legend-item-name {
+        color: rgba(255, 255, 255, 0.7);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      #legend-container.collapsed .legend-content {
+        max-height: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+        opacity: 0;
+        pointer-events: none;
+      }
+      #legend-container.collapsed .legend-icon {
+        transform: rotate(180deg);
+      }
+      .legend-icon {
+        transition: transform 0.3s ease;
+      }
+      #tooltip {
+        position: absolute;
+        background: rgba(20, 5, 30, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(200, 50, 255, 0.4);
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        transform: translate(-50%, -150%);
+        color: #e0b0ff;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        z-index: 10;
+        white-space: nowrap;
+      }
+    </style>
+    <script
+      src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <div id="canvas-container"></div>
+    <div
+      id="labels-container"
+      style="
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 5;
+      "
+    ></div>
+    <div id="ui-layer">
+      <div class="panel">
+        <div
+          style="
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+          "
+        >
+          <h1 style="margin: 0; margin-right: 2rem">Sistema Alioth</h1>
+          <button
+            id="collapse-btn"
+            style="
+              padding: 0.5rem;
+              border: none;
+              background: transparent;
+              box-shadow: none;
+              border-radius: 8px;
+              color: white;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              cursor: pointer;
+              transition: background 0.3s ease;
+            "
+            onmouseover="this.style.background = 'rgba(255,255,255,0.1)'"
+            onmouseout="this.style.background = 'transparent'"
+          >
+            <svg
+              id="collapse-icon"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="rgba(255,255,255,0.8)"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              style="
+                transition: transform 0.4s
+                  cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                display: block;
+              "
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </button>
+        </div>
+        <div
+          id="panel-content"
+          style="transition: opacity 0.2s ease; opacity: 1"
+        >
+          <p class="subtitle" style="margin-top: 0">
+            Orquestación de IA Agéntica
+          </p>
+          <div style="display: flex; flex-direction: column; gap: 0.75rem">
+            <button id="exec-btn">EJECUTAR PROTOCOLO</button>
+            <button id="layout-btn" class="layout-btn">VISTA: PIRAMIDAL</button>
+            <div class="light-control">
+              <div class="light-header">
+                <label>Lámpara Habitación</label>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="room-light-toggle" checked />
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <div class="slider-group">
+                <input
+                  type="range"
+                  id="room-light-slider"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value="100"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="legend-container" class="collapsed">
+        <div class="legend-header" id="legend-header">
+          <span>Directorio de Nodos</span>
+          <svg
+            class="legend-icon"
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <polyline points="6 9 12 15 18 9"></polyline>
+          </svg>
+        </div>
+        <div class="legend-content" id="legend-content"></div>
+      </div>
+      <div id="tooltip"></div>
+    </div>
+
+    <script>
+      try {
+        // === CORE ===
+        const container = document.getElementById("canvas-container");
+        const tooltip = document.getElementById("tooltip");
+        const execBtn = document.getElementById("exec-btn");
+        const layoutBtn = document.getElementById("layout-btn");
+        const roomLightToggle = document.getElementById("room-light-toggle");
+        const roomLightSlider = document.getElementById("room-light-slider");
+        const labelsContainer = document.getElementById("labels-container");
+        const collapseBtn = document.getElementById("collapse-btn");
+        const panelContent = document.getElementById("panel-content");
+        const legendContainer = document.getElementById("legend-container");
+        const legendHeader = document.getElementById("legend-header");
+
+        legendHeader.addEventListener("click", () => {
+          legendContainer.classList.toggle("collapsed");
+        });
+
+        let isPanelCollapsed = false;
+        const collapseIcon = document.getElementById("collapse-icon");
+        collapseBtn.addEventListener("click", () => {
+          isPanelCollapsed = !isPanelCollapsed;
+          if (isPanelCollapsed) {
+            panelContent.style.opacity = "0";
+            setTimeout(() => {
+              panelContent.style.display = "none";
+            }, 200);
+            collapseIcon.style.transform = "rotate(180deg)";
+          } else {
+            panelContent.style.display = "block";
+            setTimeout(() => {
+              panelContent.style.opacity = "1";
+            }, 10);
+            collapseIcon.style.transform = "rotate(0deg)";
+          }
+        });
+
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x0a0a0f, 0.002);
+
+        const camera = new THREE.PerspectiveCamera(
+          45,
+          window.innerWidth / window.innerHeight,
+          0.1,
+          1000,
+        );
+        camera.position.set(0, 15, 160);
+
+        const renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+          powerPreference: "high-performance",
+        });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        const controls = new THREE.OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 0, 25);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.maxDistance = 600; // Increased to allow free navigation in the room
+        controls.minDistance = 5;
+        controls.maxPolarAngle = Math.PI; // Full vertical freedom
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+
+        // === ORCHESTRATION GROUP ===
+        const orchestrationGroup = new THREE.Group();
+        orchestrationGroup.position.set(0, 0, 25); // Move everything away from the desk
+        orchestrationGroup.scale.set(2.4, 2.4, 2.4); // Increase proportional size
+        scene.add(orchestrationGroup);
+
+        // === REALISTIC ENVIRONMENT: OFFICE ROOM ===
+        const roomGroup = new THREE.Group();
+        // Shift entire room so the desk is completely behind the visualization system
+        roomGroup.position.set(0, -45, -20);
+        scene.add(roomGroup);
+
+        // 1. Floor & Walls
+        // Floor
+        const floorGeom = new THREE.PlaneBufferGeometry(600, 600);
+        const floorMat = new THREE.MeshStandardMaterial({
+          color: 0x2a2520,
+          roughness: 0.9,
+          metalness: 0.1,
+        });
+        const floorRoom = new THREE.Mesh(floorGeom, floorMat);
+        floorRoom.rotation.x = -Math.PI / 2;
+        floorRoom.position.y = -35;
+        roomGroup.add(floorRoom);
+
+        // Walls
+        const wallBackGeom = new THREE.PlaneBufferGeometry(600, 200);
+        const wallMat = new THREE.MeshStandardMaterial({
+          color: 0xdddddd,
+          roughness: 1.0,
+        });
+        const wallBack = new THREE.Mesh(wallBackGeom, wallMat);
+        wallBack.position.set(0, 65, -200);
+        roomGroup.add(wallBack);
+
+        const wallLeft = new THREE.Mesh(wallBackGeom, wallMat);
+        wallLeft.rotation.y = Math.PI / 2;
+        wallLeft.position.set(-300, 65, 50);
+        roomGroup.add(wallLeft);
+
+        const wallRight = new THREE.Mesh(wallBackGeom, wallMat);
+        wallRight.rotation.y = -Math.PI / 2;
+        wallRight.position.set(300, 65, 50);
+        roomGroup.add(wallRight);
+
+        // === 1.1 Front Wall & Hyper-Realistic Door ===
+        // Front Wall (Behind Camera)
+        const wallFront = new THREE.Mesh(wallBackGeom, wallMat);
+        wallFront.rotation.y = Math.PI;
+        wallFront.position.set(0, 65, 350);
+        roomGroup.add(wallFront);
+
+        // Hyper-Realistic Door
+        const doorGroup = new THREE.Group();
+        // On the front wall, resting on floor (-35)
+        doorGroup.position.set(0, -35, 349.5);
+        // Face towards the center of the room (-z)
+        doorGroup.rotation.y = Math.PI;
+        roomGroup.add(doorGroup);
+
+        // Deep rich wooden material
+        const woodMat = new THREE.MeshStandardMaterial({
+          color: 0x241107,
+          roughness: 0.65,
+          metalness: 0.05,
+        });
+        // A more glossy dark variant for frame
+        const doorFrameMat = new THREE.MeshStandardMaterial({
+          color: 0x140a05,
+          roughness: 0.4,
+        });
+
+        // Frame Left/Right/Top
+        const dFrameLeft = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(4, 90, 6),
+          doorFrameMat,
+        );
+        dFrameLeft.position.set(-22, 45, 0);
+        doorGroup.add(dFrameLeft);
+
+        const dFrameRight = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(4, 90, 6),
+          doorFrameMat,
+        );
+        dFrameRight.position.set(22, 45, 0);
+        doorGroup.add(dFrameRight);
+
+        const dFrameTop = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(48, 4, 6),
+          doorFrameMat,
+        );
+        dFrameTop.position.set(0, 92, 0);
+        doorGroup.add(dFrameTop);
+
+        // Main Door Panel
+        const doorPanel = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(40, 90, 2),
+          woodMat,
+        );
+        doorPanel.position.set(0, 45, 0);
+        doorGroup.add(doorPanel);
+
+        // Elaborate panels for depth
+        const insetDark = new THREE.MeshStandardMaterial({
+          color: 0x180b04,
+          roughness: 0.7,
+          metalness: 0.02,
+        });
+        // 4-panel classic design details
+        const panelPositions = [
+          { y: 70, h: 30 },
+          { y: 25, h: 40 },
+        ];
+        panelPositions.forEach((p) => {
+          const outerP = new THREE.Mesh(
+            new THREE.BoxBufferGeometry(28, p.h, 2.5),
+            woodMat,
+          );
+          outerP.position.set(0, p.y, 0);
+          doorGroup.add(outerP);
+
+          const innerP = new THREE.Mesh(
+            new THREE.BoxBufferGeometry(24, p.h - 4, 2.8),
+            insetDark,
+          );
+          innerP.position.set(0, p.y, 0);
+          doorGroup.add(innerP);
+        });
+
+        // Hyper-Realistic Metallic Handle & Lock
+        const handleGroup = new THREE.Group();
+        handleGroup.position.set(15, 45, 1.25); // Set handle on the right side of door
+        doorGroup.add(handleGroup);
+
+        const hMetalMat = new THREE.MeshPhysicalMaterial({
+          color: 0xe0e0e0,
+          metalness: 0.9,
+          roughness: 0.2,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.1,
+        });
+
+        // Base plate
+        const basePlate = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(3, 10, 0.4),
+          hMetalMat,
+        );
+        basePlate.position.set(0, 0, 0);
+        handleGroup.add(basePlate);
+
+        // Keyhole (Real cutout illusion)
+        const keyHoleMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const keyHole = new THREE.Mesh(
+          new THREE.CylinderBufferGeometry(0.3, 0.3, 0.6, 16),
+          keyHoleMat,
+        );
+        keyHole.rotation.x = Math.PI / 2;
+        keyHole.position.set(0, -3, 0.2);
+        handleGroup.add(keyHole);
+        const keySlot = new THREE.Mesh(
+          new THREE.BoxBufferGeometry(0.3, 0.8, 0.6),
+          keyHoleMat,
+        );
+        keySlot.position.set(0, -3.4, 0.2);
+        handleGroup.add(keySlot);
+
+        // Handle shaft
+        const hShaft = new THREE.Mesh(
+          new THREE.CylinderBufferGeometry(0.4, 0.5, 2, 16),
+          hMetalMat,
+        );
+        hShaft.rotation.x = Math.PI / 2;
+        hShaft.position.set(0, 2, 1);
+        handleGroup.add(hShaft);
+
+        // Handle lever (curved elegant)
+        const hLever = new THREE.Mesh(
+          new THREE.CylinderBufferGeometry(0.4, 0.3, 8, 16),
+          hMetalMat,
+        );
+        hLever.rotation.z = Math.PI / 2;
+        hLever.position.set(-3.5, 2, 1.8);
+        handleGroup.add(hLever);
+
+        // Handle end curve
+        const hEnd = new THREE.Mesh(
+          new THREE.SphereBufferGeometry(0.4, 16, 16),
+          hMetalMat,
+        );
+        hEnd.position.set(-7.5, 2, 1.8);
+        handleGroup.add(hEnd);
+
+        // Dedicated Door Highlight (brings out metal/wood texture)
+        const doorLight = new THREE.PointLight(0xffeedd, 0.6, 120);
+        doorLight.position.set(0, 50, 310);
+        roomGroup.add(doorLight);
+
+        // === 1.2 Tall Potted Plants (Front Wall Corners) ===
+        function createTallPlant() {
+          const plantContainer = new THREE.Group();
+
+          // Elegant tall matte ceramic pot with a bit of a curve
+          const potGeom = new THREE.CylinderBufferGeometry(7, 5, 22, 64);
+          const potMat = new THREE.MeshStandardMaterial({
+            color: 0x1f2326, // Very dark modern grey
+            roughness: 0.8,
+            metalness: 0.1,
+          });
+          const pot = new THREE.Mesh(potGeom, potMat);
+          pot.position.y = 11; // Half of 22
+          plantContainer.add(pot);
+
+          // Soil
+          const soilGeom = new THREE.CylinderBufferGeometry(6.8, 6.8, 0.5, 32);
+          const soilMat = new THREE.MeshStandardMaterial({
+            color: 0x110804,
+            roughness: 1.0,
+          });
+          const soil = new THREE.Mesh(soilGeom, soilMat);
+          soil.position.y = 21.5;
+          plantContainer.add(soil);
+
+          // Lush Parametric Palm (Areca / Kentia Palm style)
+          // We will create several sweeping fronds emitting from the center.
+          const frondCount = 28; // very lush
+          const leafColor1 = new THREE.Color(0x284022); // Deep green
+          const leafColor2 = new THREE.Color(0x4a7a37); // Lighter green
+          const stemMat = new THREE.MeshStandardMaterial({
+            color: 0x3d5c2c,
+            roughness: 0.6,
+          });
+
+          // Pre-create leaflet geometries to save memory
+          // A leaflet is an elongated curved shape. We will use a scaled sphere or box.
+          // Or simply a BoxBufferGeometry rotated, which looks good if dense.
+          const leafletGeom = new THREE.BoxBufferGeometry(0.3, 0.05, 1);
+          leafletGeom.translate(0, 0, 0.5); // Pivot at the base
+
+          for (let i = 0; i < frondCount; i++) {
+            const frondGroup = new THREE.Group();
+
+            // Randomize frond parameters
+            const angle =
+              (i / frondCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
+            const length = 40 + Math.random() * 35; // taller! up to 75 units
+            const arc = 0.3 + Math.random() * 0.5; // how far it arcs outward (0 to 1)
+
+            // We use a curve for the main stem
+            const startPt = new THREE.Vector3(
+              (Math.random() - 0.5) * 3,
+              21.5,
+              (Math.random() - 0.5) * 3,
+            );
+            const midPt = new THREE.Vector3(
+              Math.cos(angle) * (length * arc * 0.3),
+              21.5 + length * 0.6,
+              Math.sin(angle) * (length * arc * 0.3),
+            );
+            const endPt = new THREE.Vector3(
+              Math.cos(angle) * (length * arc),
+              21.5 + length * (1.0 - arc * 0.4),
+              Math.sin(angle) * (length * arc),
+            );
+
+            const stemCurve = new THREE.QuadraticBezierCurve3(
+              startPt,
+              midPt,
+              endPt,
+            );
+            const sGeom = new THREE.TubeBufferGeometry(
+              stemCurve,
+              12,
+              0.25,
+              6,
+              false,
+            );
+            const stem = new THREE.Mesh(sGeom, stemMat);
+            frondGroup.add(stem);
+
+            // Add leaflets along the stem
+            const leafletMat = new THREE.MeshStandardMaterial({
+              color: leafColor1
+                .clone()
+                .lerp(leafColor2, Math.random() * 0.6 + 0.2),
+              roughness: 0.5,
+              metalness: 0.1,
+              side: THREE.DoubleSide,
+            });
+
+            // Start leaflets partway up the stem
+            const numLeaflets = Math.floor(length * 1.5);
+            for (let j = 0; j < numLeaflets; j++) {
+              const t = 0.2 + (0.8 * j) / numLeaflets; // from 20% to 100% of the stem
+              const pos = stemCurve.getPoint(t);
+              const tangent = stemCurve.getTangent(t).normalize();
+
+              // We need a normal vector to point the leaflets horizontally outward from the stem
+              // A simple way is to cross the tangent with an "up" vector, though tangent itself might point up.
+              // Let's create a local basis.
+              const up = new THREE.Vector3(0, 1, 0);
+              let right = new THREE.Vector3().crossVectors(tangent, up);
+              if (right.lengthSq() < 0.001) {
+                // If tangent is completely vertical, just pick X
+                right.set(1, 0, 0);
+              }
+              right.normalize();
+
+              // The leaflets on the left and right of the stem
+              for (let side = -1; side <= 1; side += 2) {
+                const leaflet = new THREE.Mesh(leafletGeom, leafletMat);
+                leaflet.position.copy(pos);
+
+                // Orient the leaflet
+                // Point it slightly along the stem (tangent), mostly outwards (right * side)
+                // and droop slightly downwards (-up)
+                const droop = (1.0 - t) * 0.5 + 0.2; // upper leaflets droop more/less? Let's say droop increases towards tips
+                const dir = new THREE.Vector3()
+                  .copy(right)
+                  .multiplyScalar(side * 1.5)
+                  .add(tangent.clone().multiplyScalar(1.2))
+                  .add(up.clone().multiplyScalar(-droop))
+                  .normalize();
+
+                // Use lookAt to reorient the leaflet
+                // Since leaflet base is at origin, we create a dummy object to use lookAt
+                const target = pos.clone().add(dir);
+                leaflet.lookAt(target);
+
+                // Scale the leaflet (longer near the middle of the leafy section, tapering at the tip)
+                // t is 0.2 to 1.0. Let's map it to a parabolic scale.
+                const leafT = (t - 0.2) / 0.8; // 0 to 1
+                const lengthScale = Math.sin(leafT * Math.PI) * 4.0 + 1.0;
+                leaflet.scale.set(1, 1, lengthScale * (length / 50));
+
+                frondGroup.add(leaflet);
+              }
+            }
+
+            plantContainer.add(frondGroup);
+          }
+
+          return plantContainer;
+        }
+
+        // Left corner tall plant
+        const cornerPlantLeft = createTallPlant();
+        cornerPlantLeft.position.set(-270, -35, 320);
+        cornerPlantLeft.scale.set(1.4, 1.6, 1.4);
+        roomGroup.add(cornerPlantLeft);
+
+        // Right corner tall plant
+        const cornerPlantRight = createTallPlant();
+        cornerPlantRight.position.set(270, -35, 320);
+        cornerPlantRight.scale.set(1.3, 1.5, 1.3);
+        cornerPlantRight.rotation.y = Math.PI / 4;
+        roomGroup.add(cornerPlantRight);
+
+        // Skirting Board
+        const skirtGeom = new THREE.BoxBufferGeometry(600, 2, 2);
+        const skirtMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
+        const skirtBack = new THREE.Mesh(skirtGeom, skirtMat);
+        skirtBack.position.set(0, -34, -199);
+        roomGroup.add(skirtBack);
+
+        // 2. Office Desk
+        const deskGroup = new THREE.Group();
+        roomGroup.add(deskGroup);
+
+        // Table top
+        const deskTopGeom = new THREE.BoxBufferGeometry(220, 4, 100);
+        const deskTopMat = new THREE.MeshStandardMaterial({
+          color: 0x4a3219,
+          roughness: 0.6,
+          metalness: 0.1,
+        }); // wood color
+        const deskTop = new THREE.Mesh(deskTopGeom, deskTopMat);
+        deskTop.position.set(0, -10, -80);
+        deskGroup.add(deskTop);
+
+        // Legs
+        const legGeom = new THREE.BoxBufferGeometry(4, 25, 96);
+        const legMat = new THREE.MeshStandardMaterial({
+          color: 0x111111,
+          roughness: 0.8,
+        });
+        const legLeft = new THREE.Mesh(legGeom, legMat);
+        legLeft.position.set(-100, -22.5, -80);
+        deskGroup.add(legLeft);
+        const legRight = new THREE.Mesh(legGeom, legMat);
+        legRight.position.set(100, -22.5, -80);
+        deskGroup.add(legRight);
+
+        // 3. PC Monitor
+        const monitorGroup = new THREE.Group();
+        deskGroup.add(monitorGroup);
+
+        // Base
+        const monitorBaseGeom = new THREE.BoxBufferGeometry(20, 1, 14);
+        const monitorPlastMat = new THREE.MeshStandardMaterial({
+          color: 0x050505,
+          roughness: 0.7,
+        });
+        const monBase = new THREE.Mesh(monitorBaseGeom, monitorPlastMat);
+        monBase.position.set(0, -7.5, -100);
+        monitorGroup.add(monBase);
+
+        // Stand
+        const monitorStandGeom = new THREE.CylinderBufferGeometry(2.0, 2.0, 14);
+        const monStand = new THREE.Mesh(monitorStandGeom, monitorPlastMat);
+        monStand.position.set(0, -1, -102);
+        monitorGroup.add(monStand);
+
+        // Screen border
+        const monitorGeom = new THREE.BoxBufferGeometry(52, 30, 2);
+        const monitorFrame = new THREE.Mesh(monitorGeom, monitorPlastMat);
+        monitorFrame.position.set(0, 10, -100);
+        monitorGroup.add(monitorFrame);
+
+        // Screen display (CanvasTexture replicating attached image)
+        const monitorCanvas = document.createElement("canvas");
+        // The image is a vertical screenshot, but the monitor is a horizontal screen (50x28).
+        // We'll draw the UI centered or use a horizontal arrangement.
+        monitorCanvas.width = 1920;
+        monitorCanvas.height = 1080;
+        const monitorCtx = monitorCanvas.getContext("2d");
+
+        // Background
+        monitorCtx.fillStyle = "#050608";
+        monitorCtx.fillRect(0, 0, 1920, 1080);
+
+        // Stars/Dots
+        monitorCtx.fillStyle = "#ffffff";
+        for (let i = 0; i < 60; i++) {
+          monitorCtx.globalAlpha = Math.random() * 0.5 + 0.1;
+          monitorCtx.fillRect(Math.random() * 1920, Math.random() * 1080, 2, 2);
+        }
+        monitorCtx.globalAlpha = 1.0;
+
+        // Top bar Logo
+        monitorCtx.fillStyle = "#d4af37";
+        monitorCtx.font = 'bold 36px "Arial"';
+        monitorCtx.textAlign = "left";
+        monitorCtx.fillText("✦  ALIOTH", 80, 80);
+
+        // Top bar Buttons
+        monitorCtx.fillStyle = "rgba(255, 255, 255, 0.05)";
+        monitorCtx.beginPath();
+        monitorCtx.roundRect(1600, 40, 250, 60, 30);
+        monitorCtx.fill();
+        monitorCtx.strokeStyle = "rgba(255, 255, 255, 0.1)";
+        monitorCtx.stroke();
+
+        monitorCtx.fillStyle = "#555";
+        monitorCtx.font = '20px "Arial"';
+        monitorCtx.fillText("☀️", 1630, 80);
+        monitorCtx.fillStyle = "#d4af37";
+        monitorCtx.font = 'bold 18px "Arial"';
+        monitorCtx.fillText("ES", 1690, 78);
+        monitorCtx.fillStyle = "#777";
+        monitorCtx.fillText("EN", 1750, 78);
+
+        monitorCtx.beginPath();
+        monitorCtx.arc(1810, 70, 18, 0, Math.PI * 2);
+        monitorCtx.stroke();
+
+        // Main Content Group
+        monitorCtx.textAlign = "center";
+        monitorCtx.fillStyle = "#a58020";
+        monitorCtx.font = 'bold 20px "Arial"';
+        monitorCtx.letterSpacing = "6px";
+        monitorCtx.fillText("PREGUNTAS FRECUENTES", 960, 220);
+
+        monitorCtx.letterSpacing = "0px";
+        monitorCtx.fillStyle = "#ffffff";
+        monitorCtx.font = 'bold 96px "Arial"';
+        monitorCtx.shadowColor = "rgba(0,0,0,0.5)";
+        monitorCtx.shadowOffsetY = 4;
+        monitorCtx.shadowBlur = 10;
+        monitorCtx.fillText("Transparencia", 960, 340);
+        monitorCtx.fillStyle = "#ebd070";
+        monitorCtx.fillText("Operativa", 960, 440);
+
+        monitorCtx.shadowColor = "transparent";
+        monitorCtx.font = '28px "Arial"';
+        monitorCtx.fillStyle = "#aaaaaa";
+        monitorCtx.fillText(
+          "Respuestas directas a las dudas de infraestructura, seguridad",
+          960,
+          520,
+        );
+        monitorCtx.fillText("e integración técnica.", 960, 565);
+
+        // Accordion List
+        monitorCtx.textAlign = "left";
+        monitorCtx.font = 'bold 24px "Arial"';
+        const faqs = [
+          "¿Mis datos corporativos se usan para entrenar a la IA?",
+          "¿Cómo garantizan que un agente no tome una decisión desastrosa por una alucinación?",
+          "¿Tengo que cambiar mi software actual (ERP/CRM) para usar Alioth?",
+          "¿Qué pasa si la infraestructura falla o hay un pico masivo de peticiones?",
+          "¿Cuál es el modelo de inversión para implementar Alioth?",
+        ];
+
+        let yOffset = 640;
+        for (const faq of faqs) {
+          monitorCtx.fillStyle = "#0c0d10";
+          monitorCtx.beginPath();
+          monitorCtx.roundRect(420, yOffset, 1080, 68, 12);
+          monitorCtx.fill();
+
+          monitorCtx.fillStyle = "#ffffff";
+          monitorCtx.fillText(faq, 460, yOffset + 43);
+
+          monitorCtx.fillStyle = "#555555";
+          monitorCtx.font = '28px "Arial"';
+          monitorCtx.fillText("+", 1450, yOffset + 45);
+          monitorCtx.font = 'bold 24px "Arial"';
+
+          yOffset += 88;
+        }
+
+        const screenTexture = new THREE.CanvasTexture(monitorCanvas);
+        screenTexture.generateMipmaps = true;
+        screenTexture.minFilter = THREE.LinearMipmapLinearFilter;
+
+        const screenMat = new THREE.MeshBasicMaterial({ map: screenTexture });
+        const screenPanelGeom = new THREE.PlaneBufferGeometry(50, 28);
+        const screenPanel = new THREE.Mesh(screenPanelGeom, screenMat);
+        screenPanel.position.set(0, 10, -98.9);
+        monitorGroup.add(screenPanel);
+
+        // PC Tower
+        const pcTowerGeom = new THREE.BoxBufferGeometry(22, 45, 50);
+        const pcTower = new THREE.Mesh(pcTowerGeom, monitorPlastMat);
+        pcTower.position.set(80, 12.5, -90);
+        deskGroup.add(pcTower);
+
+        const pcLightGeom = new THREE.BoxBufferGeometry(20, 2, 1);
+        const pcLightMat = new THREE.MeshBasicMaterial({ color: 0x00aaff });
+        const pcLight = new THREE.Mesh(pcLightGeom, pcLightMat);
+        pcLight.position.set(80, 28, -64.5);
+        deskGroup.add(pcLight);
+
+        // Keyboard
+        const kbGeom = new THREE.BoxBufferGeometry(40, 1.5, 14);
+        const kbRoom = new THREE.Mesh(kbGeom, monitorPlastMat);
+        kbRoom.position.set(0, -7.25, -60); // above desk top (-8)
+        deskGroup.add(kbRoom);
+
+        // Mouse
+        const mouseGeom = new THREE.BoxBufferGeometry(5, 1.5, 8);
+        const mouseRoom = new THREE.Mesh(mouseGeom, monitorPlastMat);
+        mouseRoom.position.set(30, -7.25, -60);
+        deskGroup.add(mouseRoom);
+
+        // 4. Desktop Items
+        // Coffee Cup
+        const cupGeom = new THREE.CylinderBufferGeometry(3, 3, 7, 16);
+        const cupMat = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          roughness: 0.2,
+        });
+        const cup = new THREE.Mesh(cupGeom, cupMat);
+        cup.position.set(-32, -4.5, -55);
+        deskGroup.add(cup);
+
+        // Hyper-Realistic Organic Papers stacked
+        const papersGroup = new THREE.Group();
+        papersGroup.position.set(55, -7.9, -50); // Right of mouse
+        deskGroup.add(papersGroup);
+
+        const paperMat = new THREE.MeshStandardMaterial({
+          color: 0xfdfdfd,
+          roughness: 0.9,
+          metalness: 0.05,
+          side: THREE.DoubleSide,
+        });
+
+        for (let p = 0; p < 5; p++) {
+          // High density plane for vertex displacement
+          const pGeom = new THREE.PlaneBufferGeometry(14, 20, 64, 64);
+          const posAttr = pGeom.attributes.position;
+          const v = new THREE.Vector3();
+          for (let i = 0; i < posAttr.count; i++) {
+            v.fromBufferAttribute(posAttr, i);
+            // Complex mathematical curl using sine waves mapped to UVs
+            const curlX = Math.sin(v.x * 0.2 + p) * 0.3;
+            const curlY = Math.cos(v.y * 0.2 - p * 0.5) * 0.4;
+            // Soft edge lift towards the corners
+            const edgeDist =
+              Math.pow(Math.abs(v.x) / 7.0, 2.0) +
+              Math.pow(Math.abs(v.y) / 10.0, 2.0);
+            const lift = Math.pow(edgeDist, 1.5) * 0.8;
+            v.z += curlX + curlY + lift;
+            posAttr.setXYZ(i, v.x, v.y, v.z);
+          }
+          pGeom.computeVertexNormals();
+
+          const sheet = new THREE.Mesh(pGeom, paperMat);
+          sheet.rotation.x = -Math.PI / 2;
+          // Organic stacking
+          sheet.position.y = p * 0.25;
+          sheet.rotation.z = (Math.random() - 0.5) * 0.3 + p * 0.08;
+          sheet.position.x = (Math.random() - 0.5) * 2.0;
+          sheet.position.z = (Math.random() - 0.5) * 2.0;
+
+          // Add a sleek metallic fountain pen on the top paper
+          if (p === 4) {
+            const penGeom = new THREE.CylinderBufferGeometry(0.4, 0.4, 12, 32);
+            const penMat = new THREE.MeshPhysicalMaterial({
+              color: 0x111111,
+              metalness: 0.8,
+              roughness: 0.2,
+              clearcoat: 1.0,
+            });
+            const pen = new THREE.Mesh(penGeom, penMat);
+            pen.rotation.z = Math.PI / 2;
+            pen.rotation.y = 0.6;
+            pen.position.set(2, 0.6, 4);
+
+            const penTipGeom = new THREE.ConeBufferGeometry(0.4, 1.5, 32);
+            const penTipMat = new THREE.MeshStandardMaterial({
+              color: 0xdddddd,
+              metalness: 1.0,
+              roughness: 0.1,
+            });
+            const penTip = new THREE.Mesh(penTipGeom, penTipMat);
+            penTip.position.y = 6.75;
+            pen.add(penTip);
+
+            const penGoldRingGeom = new THREE.CylinderBufferGeometry(
+              0.42,
+              0.42,
+              0.5,
+              32,
+            );
+            const penGoldMat = new THREE.MeshStandardMaterial({
+              color: 0xd4af37,
+              metalness: 0.9,
+              roughness: 0.2,
+            });
+            const penRing = new THREE.Mesh(penGoldRingGeom, penGoldMat);
+            penRing.position.y = 5.0;
+            pen.add(penRing);
+
+            const penClipGeom = new THREE.BoxBufferGeometry(0.2, 5, 0.4);
+            const penClip = new THREE.Mesh(penClipGeom, penGoldMat);
+            penClip.position.set(0.4, -3, 0);
+            pen.add(penClip);
+
+            sheet.add(pen);
+          }
+          papersGroup.add(sheet);
+        }
+
+        // === 3. Prisma Óptico de Cristal (Artefacto Refractivo) ===
+        const crystalGroup = new THREE.Group();
+        crystalGroup.position.set(55, -5.5, -70); // Arriba de los papeles (un poco más al fondo)
+        deskGroup.add(crystalGroup);
+
+        const crystalGeom = new THREE.IcosahedronBufferGeometry(2.5, 0);
+        const crystalMat = new THREE.MeshPhysicalMaterial({
+          color: 0xffffff,
+          transmission: 1.0, // Vidrio puro
+          opacity: 1.0,
+          metalness: 0.1,
+          roughness: 0.05,
+          ior: 1.52, // Índice de refracción del cristal
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.1,
+        });
+        const crystal = new THREE.Mesh(crystalGeom, crystalMat);
+        crystal.rotation.set(0.5, 0.8, 0.2); // Ángulo interesante para la refracción
+        crystalGroup.add(crystal);
+
+        // === 4. Cuna de Newton (Hiperrealista Metálico) ===
+        const newtonGroup = new THREE.Group();
+        newtonGroup.position.set(-55, -7.7, -85); // Lado izquierdo, al fondo
+        newtonGroup.rotation.y = 0.6; // Ligeramente en diagonal
+        deskGroup.add(newtonGroup);
+
+        // Base pesada de madera oscura
+        const nBaseGeom = new THREE.BoxBufferGeometry(18, 0.6, 12);
+        const nBaseMat = new THREE.MeshStandardMaterial({
+          color: 0x0a0a0a,
+          roughness: 0.8,
+          metalness: 0.1,
+        });
+        const nBase = new THREE.Mesh(nBaseGeom, nBaseMat);
+        newtonGroup.add(nBase);
+
+        // Material Metálico Cromado Perfecto
+        const nChromeMat = new THREE.MeshStandardMaterial({
+          color: 0xffffff,
+          roughness: 0.05,
+          metalness: 1.0, // Reflejo máximo
+        });
+
+        // Estructura (Arcos / Postes)
+        const nFrameGeom = new THREE.CylinderBufferGeometry(0.3, 0.3, 14, 32);
+        const postPositions = [
+          [-8, 4.5],
+          [8, 4.5],
+          [-8, -4.5],
+          [8, -4.5],
+        ];
+        postPositions.forEach((pos) => {
+          const post = new THREE.Mesh(nFrameGeom, nChromeMat);
+          post.position.set(pos[0], 7, pos[1]);
+          newtonGroup.add(post);
+        });
+
+        const barGeom = new THREE.CylinderBufferGeometry(0.3, 0.3, 16.6, 32);
+        [-4.5, 4.5].forEach((z) => {
+          const bar = new THREE.Mesh(barGeom, nChromeMat);
+          bar.rotation.z = Math.PI / 2;
+          bar.position.set(0, 14, z);
+          newtonGroup.add(bar);
+        });
+
+        // Esferas y Cuerdas
+        const nSphereGeom = new THREE.SphereBufferGeometry(1.5, 64, 64);
+        const nStringGeom = new THREE.CylinderBufferGeometry(
+          0.02,
+          0.02,
+          10.5,
+          8,
+        );
+        const stringMat = new THREE.MeshBasicMaterial({ color: 0x777777 });
+
+        // Animar lógicamente la posición de las esferas (una en movimiento)
+        for (let i = 0; i < 5; i++) {
+          const xOffset = -6 + i * 3.0;
+
+          // La primera esfera está suspendida en el aire con energía potencial
+          const angle = i === 0 ? 0.6 : 0;
+
+          const pendulum = new THREE.Group();
+          pendulum.position.set(xOffset, 14, 0); // Eje de pivote
+          pendulum.rotation.z = angle;
+
+          const sphere = new THREE.Mesh(nSphereGeom, nChromeMat);
+          sphere.position.set(0, -10, 0);
+          pendulum.add(sphere);
+
+          // Cuerdas formando una 'V' térmica
+          const string1 = new THREE.Mesh(nStringGeom, stringMat);
+          string1.position.set(0, -5.0, 2.25);
+          string1.rotation.x = -0.45; // Angulada hacia la barra superior
+          pendulum.add(string1);
+
+          const string2 = new THREE.Mesh(nStringGeom, stringMat);
+          string2.position.set(0, -5.0, -2.25);
+          string2.rotation.x = 0.45;
+          pendulum.add(string2);
+
+          newtonGroup.add(pendulum);
+        }
+
+        // === 5. Planta Paramétrica (Bonsái Suculenta en Maceta) ===
+        const plantGroup = new THREE.Group();
+        // Ocupando el espacio libre dejado por la lámpara
+        plantGroup.position.set(-78, -8, -65);
+        deskGroup.add(plantGroup);
+
+        // Maceta de Cerámica Mate
+        const potGeom = new THREE.CylinderBufferGeometry(5, 3.5, 6, 64);
+        const potMat = new THREE.MeshStandardMaterial({
+          color: 0xeaeaea,
+          roughness: 0.3,
+          metalness: 0.1,
+        });
+        const pot = new THREE.Mesh(potGeom, potMat);
+        pot.position.y = 3;
+        plantGroup.add(pot);
+
+        // Tierra Sintética
+        const soilGeom = new THREE.CylinderBufferGeometry(4.8, 4.8, 0.2, 64);
+        const soilMat = new THREE.MeshStandardMaterial({
+          color: 0x221105,
+          roughness: 1.0,
+        });
+        const soil = new THREE.Mesh(soilGeom, soilMat);
+        soil.position.y = 5.8;
+        plantGroup.add(soil);
+
+        // Generación Matemática de Hojas de Suculenta (Espiral de Fibonacci)
+        const leafColor1 = new THREE.Color(0x2d4c1e); // Verde oscuro
+        const leafColor2 = new THREE.Color(0x76b041); // Verde brillante
+        const leafGeom = new THREE.SphereBufferGeometry(1, 32, 32);
+
+        const leafCount = 60;
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5)); // ~137.5 grados
+
+        for (let i = 0; i < leafCount; i++) {
+          const radius = Math.sqrt(i) * 0.45;
+          const theta = i * goldenAngle;
+
+          const leafMat = new THREE.MeshStandardMaterial({
+            color: leafColor1.clone().lerp(leafColor2, i / leafCount),
+            roughness: 0.5,
+            metalness: 0.05,
+          });
+
+          const leaf = new THREE.Mesh(leafGeom, leafMat);
+
+          // Compresión y estiramiento para fomar la hoja carnosa
+          const size = 0.4 + (i / leafCount) * 0.9;
+          leaf.scale.set(0.7 * size, 0.25 * size, 2.2 * size);
+
+          const x = radius * Math.cos(theta);
+          const z = radius * Math.sin(theta);
+          // Caída orgánica dependiendo del radio
+          const y =
+            6.0 + (1 - i / leafCount) * 1.5 - Math.pow(radius, 2) * 0.12;
+
+          leaf.position.set(x, y, z);
+          leaf.lookAt(new THREE.Vector3(x * 2, y + 5, z * 2));
+
+          plantGroup.add(leaf);
+        }
+
+        // Window
+        const winGeom = new THREE.PlaneBufferGeometry(120, 80);
+        const winMat = new THREE.MeshStandardMaterial({
+          color: 0x050a15,
+          roughness: 0.1,
+          emissive: 0x02040a,
+        });
+        const win = new THREE.Mesh(winGeom, winMat);
+        win.position.set(-120, 30, -199);
+        roomGroup.add(win);
+
+        const winFrameGeom = new THREE.BoxBufferGeometry(124, 84, 4);
+        const winFrameMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+        const winFrame = new THREE.Mesh(winFrameGeom, winFrameMat);
+        winFrame.position.set(-120, 30, -199);
+        roomGroup.add(winFrame);
+
+        const winHBar = new THREE.BoxBufferGeometry(124, 2, 6);
+        const wHB = new THREE.Mesh(winHBar, winFrameMat);
+        wHB.position.set(-120, 30, -199);
+        roomGroup.add(wHB);
+
+        const winVBar = new THREE.BoxBufferGeometry(2, 84, 6);
+        const wVB = new THREE.Mesh(winVBar, winFrameMat);
+        wVB.position.set(-120, 30, -199);
+        roomGroup.add(wVB);
+
+        // Since we are not using RectAreaLight, add a point light for moonlight
+        const winLight = new THREE.PointLight(0x6699ff, 1.0, 300);
+        winLight.position.set(-120, 30, -180);
+        roomGroup.add(winLight);
+
+        // Ceiling Light (Ultra-Realistic LED Panel)
+        const ceilLightGroup = new THREE.Group();
+        ceilLightGroup.position.set(0, 164, 0); // slightly below ceiling
+        roomGroup.add(ceilLightGroup);
+
+        const ceilBaseGeom = new THREE.BoxBufferGeometry(80, 2, 80);
+        const ceilBaseMat = new THREE.MeshStandardMaterial({
+          color: 0x111111,
+          metalness: 0.8,
+          roughness: 0.2,
+        });
+        const ceilBase = new THREE.Mesh(ceilBaseGeom, ceilBaseMat);
+        ceilLightGroup.add(ceilBase);
+
+        const ceilFrameGeom = new THREE.BoxBufferGeometry(84, 4, 84);
+        const ceilFrameMat = new THREE.MeshStandardMaterial({
+          color: 0x222222,
+          metalness: 0.9,
+          roughness: 0.1,
+        });
+        const ceilFrame = new THREE.Mesh(ceilFrameGeom, ceilFrameMat);
+        ceilLightGroup.add(ceilFrame);
+
+        const ceilDiffGeom = new THREE.PlaneBufferGeometry(76, 76);
+        const ceilDiffMat = new THREE.MeshBasicMaterial({ color: 0xffffee });
+        const ceilDiff = new THREE.Mesh(ceilDiffGeom, ceilDiffMat);
+        ceilDiff.rotation.x = Math.PI / 2;
+        ceilDiff.position.y = -2.1;
+        ceilLightGroup.add(ceilDiff);
+
+        const roomLight = new THREE.PointLight(0xffffee, 0.35, 1200, 1.2);
+        roomLight.position.set(0, -5, 0);
+        ceilLightGroup.add(roomLight);
+
+        const roomAmbient = new THREE.AmbientLight(0xffffee, 0.35 * 0.3); // extra ambient light for better coverage
+        ceilLightGroup.add(roomAmbient);
+
+        window.roomLight = roomLight;
+        window.roomAmbient = roomAmbient;
+        window.ceilDiffMat = ceilDiffMat;
+
+        // 5. Wall Painting (Alioth Logo)
+        const frameWidth = 120;
+        const frameHeight = 90;
+        const frameDepth = 2;
+
+        const frameGeom = new THREE.BoxBufferGeometry(
+          frameWidth,
+          frameHeight,
+          frameDepth,
+        );
+        const frameMat = new THREE.MeshStandardMaterial({
+          color: 0x050505,
+          roughness: 0.8,
+          metalness: 0.5,
+        });
+        const frameMesh = new THREE.Mesh(frameGeom, frameMat);
+        // Position it on the right side of the back wall
+        frameMesh.position.set(100, 60, -198);
+        roomGroup.add(frameMesh);
+
+        // Canvas/Image for the painting
+        const logoCanvas = document.createElement("canvas");
+        logoCanvas.width = 2048;
+        logoCanvas.height = 1536;
+        const ctx = logoCanvas.getContext("2d");
+
+        // Background
+        const grad = ctx.createRadialGradient(1024, 768, 0, 1024, 768, 1200);
+        grad.addColorStop(0, "#1a1d24");
+        grad.addColorStop(1, "#050608");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 2048, 1536);
+
+        ctx.save();
+        ctx.translate(1024, 650);
+
+        // Dark Pyramid Background Glow
+        ctx.shadowColor = "rgba(212, 175, 55, 0.4)";
+        ctx.shadowBlur = 150;
+
+        // Pyramid
+        ctx.beginPath();
+        ctx.moveTo(0, -350);
+        ctx.lineTo(-350, 250);
+        ctx.lineTo(350, 250);
+        ctx.closePath();
+
+        const pyrGrad = ctx.createLinearGradient(0, -350, 0, 250);
+        pyrGrad.addColorStop(0, "#222");
+        pyrGrad.addColorStop(1, "#000");
+        ctx.fillStyle = pyrGrad;
+        ctx.fill();
+
+        // Pyramid Highlights
+        ctx.beginPath();
+        ctx.moveTo(0, -350);
+        ctx.lineTo(0, 250);
+        ctx.lineTo(350, 250);
+        ctx.closePath();
+        ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+        ctx.fill();
+
+        ctx.shadowBlur = 0; // reset
+
+        // Gold Orbits
+        ctx.strokeStyle = "#d4af37";
+        ctx.lineWidth = 14;
+
+        for (let i = 0; i < 3; i++) {
+          ctx.save();
+          ctx.rotate((i * Math.PI) / 3);
+          ctx.beginPath();
+          ctx.ellipse(0, 0, 450, 150, 0, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Add nodes on orbits
+          ctx.fillStyle = "#ffdf70";
+          ctx.shadowColor = "#ffdf70";
+          ctx.shadowBlur = 40;
+
+          ctx.beginPath();
+          ctx.arc(450, 0, 30, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.arc(-450, 0, 30, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.restore();
+        }
+
+        // Center Core
+        ctx.beginPath();
+        ctx.arc(0, 0, 70, 0, Math.PI * 2);
+        const coreGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, 70);
+        coreGrad.addColorStop(0, "#ffffff");
+        coreGrad.addColorStop(0.3, "#ffdf70");
+        coreGrad.addColorStop(1, "#d4af37");
+        ctx.fillStyle = coreGrad;
+        ctx.shadowColor = "#ffcf40";
+        ctx.shadowBlur = 100;
+        ctx.fill();
+        ctx.restore();
+
+        // Text
+        ctx.shadowBlur = 0;
+        ctx.font = 'bold 220px "Arial", sans-serif';
+        ctx.textAlign = "center";
+
+        // Alioth Gold Gradient
+        const textGrad = ctx.createLinearGradient(0, 1050, 0, 1250);
+        textGrad.addColorStop(0, "#f9e596");
+        textGrad.addColorStop(0.5, "#d4af37");
+        textGrad.addColorStop(1, "#997212");
+        ctx.fillStyle = textGrad;
+
+        ctx.fillText("ALIOTH", 1024, 1250);
+
+        // Subtitle
+        ctx.font = '65px "Arial", sans-serif';
+        const subtitle = "A G E N T I C   O R C H E S T R A T I O N";
+        ctx.fillStyle = "#a58020";
+        ctx.fillText(subtitle, 1024, 1380);
+
+        const logoTexture = new THREE.CanvasTexture(logoCanvas);
+        logoTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+        // Actual painting mesh
+        const canvasMeshGeom = new THREE.PlaneBufferGeometry(
+          frameWidth - 4,
+          frameHeight - 4,
+        );
+        const paintingMat = new THREE.MeshStandardMaterial({
+          map: logoTexture,
+          roughness: 0.3,
+          metalness: 0.1,
+        });
+        const paintingMesh = new THREE.Mesh(canvasMeshGeom, paintingMat);
+        paintingMesh.position.set(100, 60, -196.9);
+        roomGroup.add(paintingMesh);
+
+        // Spotlight for the painting
+        const paintingLight = new THREE.SpotLight(
+          0xffeedd,
+          2.0,
+          200,
+          Math.PI / 5,
+          0.8,
+          1,
+        );
+        paintingLight.position.set(100, 120, -100);
+        paintingLight.target = paintingMesh;
+        roomGroup.add(paintingLight);
+
+        const coreLight = new THREE.PointLight(0x00ffff, 2, 50);
+        orchestrationGroup.add(coreLight);
+
+        const wireframeMaterial = new THREE.MeshStandardMaterial({
+          color: 0x0088ff,
+          emissive: 0x0044aa,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.8,
+        });
+
+        const solidMaterial = new THREE.MeshPhysicalMaterial({
+          color: 0x050510,
+          emissive: 0x001133,
+          metalness: 0.9,
+          roughness: 0.1,
+          clearcoat: 1.0,
+          transparent: true,
+          opacity: 0.9,
+        });
+
+        // === NODE 0: THE ORCHESTRATOR ===
+        const coreGeometry = new THREE.IcosahedronBufferGeometry(3, 2);
+
+        const coreVertexShader = `
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            uniform float time;
+            void main() {
+                vUv = uv;
+                vPosition = position;
+                vec3 pos = position;
+                float pulse = sin(pos.x * 2.0 + time) * cos(pos.y * 2.0 + time) * 0.1;
+                pos += normal * pulse;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+            }
+        `;
+
+        const coreFragmentShader = `
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            uniform float time;
+            void main() {
+                vec2 uv = vUv * 2.0 - 1.0;
+                float d = length(uv);
+                float glow = 0.5 + 0.5 * sin(d * 10.0 - time * 3.0);
+                vec3 color = mix(vec3(0.0, 0.2, 0.5), vec3(0.0, 1.0, 1.0), glow);
+                
+                float noise = fract(sin(dot(vPosition.xy ,vec2(12.9898,78.233))) * 43758.5453);
+                color *= mix(0.8, 1.2, noise);
+                
+                float fresnel = dot(normalize(vPosition), vec3(0.0, 0.0, 1.0));
+                gl_FragColor = vec4(color, 0.8 + 0.2 * fresnel);
+            }
+        `;
+
+        const coreMaterial = new THREE.ShaderMaterial({
+          vertexShader: coreVertexShader,
+          fragmentShader: coreFragmentShader,
+          uniforms: { time: { value: 0.0 } },
+          transparent: true,
+        });
+
+        const coreMesh = new THREE.Mesh(coreGeometry, coreMaterial);
+        orchestrationGroup.add(coreMesh);
+
+        const coreWireframe = new THREE.Mesh(
+          new THREE.IcosahedronBufferGeometry(3.3, 1),
+          wireframeMaterial.clone(),
+        );
+        coreWireframe.material.color.setHex(0x00ffff);
+        coreWireframe.material.emissive.setHex(0x0088aa);
+        coreMesh.add(coreWireframe);
+
+        // === LAYOUT LOGIC ===
+        const layoutCircular = {
+          core: new THREE.Vector3(0, 22, 0),
+          packager: new THREE.Vector3(0, -22, 0),
+          agents: Array.from({ length: 6 }).map((_, i) => {
+            const angle = (i / 6) * Math.PI * 2;
+            return new THREE.Vector3(
+              Math.cos(angle) * 24,
+              4,
+              Math.sin(angle) * 24,
+            );
+          }),
+          innerAgents: [
+            new THREE.Vector3(-6, -2, 0),
+            new THREE.Vector3(6, -2, 0),
+          ],
+        };
+
+        const layoutPyramid = {
+          core: new THREE.Vector3(0, 24, 0),
+          packager: new THREE.Vector3(0, -24, 0),
+          agents: [
+            new THREE.Vector3(-12, 12, 0),
+            new THREE.Vector3(12, 12, 0),
+            new THREE.Vector3(-20, -5, -8),
+            new THREE.Vector3(-8, -5, 8),
+            new THREE.Vector3(8, -5, -8),
+            new THREE.Vector3(20, -5, 8),
+          ],
+          innerAgents: [
+            new THREE.Vector3(-5, 3, 0),
+            new THREE.Vector3(5, 3, 0),
+          ],
+        };
+
+        let currentLayout = "circular";
+
+        // === NODES 1-6: SUB-AGENTS ===
+        const agents = [];
+        const agentNames = [
+          "Agente Cognitivo",
+          "Agente Analítico",
+          "Agente Auditor",
+          "Agente Ejecutor",
+          "Agente de Integración",
+          "Agente de Seguridad",
+        ];
+
+        // === AURA SHADERS ===
+        const auraVertexShader = `
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+            void main() {
+                vUv = uv;
+                vNormal = normalize(normalMatrix * normal);
+                vPosition = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const auraFragmentShader = `
+            uniform float uTime;
+            uniform float uActivation;
+            uniform vec3 uColor;
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            varying vec3 vPosition;
+
+            void main() {
+                float rim = pow(1.0 - abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 2.0);
+                float band = sin(vPosition.y * 10.0 - uTime * 4.0);
+                float bandMask = smoothstep(0.8, 1.0, band);
+                
+                float noise = fract(sin(dot(floor(vUv * 50.0), vec2(12.9898, 78.233))) * 43758.5453);
+                noise = step(0.8, noise) * 0.5;
+                
+                float equator = smoothstep(0.05, 0.0, abs(vPosition.y));
+                float eqPulse = (0.5 + 0.5 * sin(uTime * 8.0)) * equator;
+
+                float finalAlpha = (rim * 0.4 + bandMask * 0.6 + noise + eqPulse) * uActivation;
+                finalAlpha *= smoothstep(0.0, 0.5, rim);
+
+                gl_FragColor = vec4(uColor + (eqPulse * vec3(1.0)), finalAlpha * 0.8);
+            }
+        `;
+        const auraGeometry = new THREE.SphereBufferGeometry(2.5, 32, 32);
+        const auraMaterialTpl = new THREE.ShaderMaterial({
+          vertexShader: auraVertexShader,
+          fragmentShader: auraFragmentShader,
+          uniforms: {
+            uTime: { value: 0 },
+            uActivation: { value: 0 },
+            uColor: { value: new THREE.Color(0x00ffff) },
+          },
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+          side: THREE.DoubleSide,
+        });
+
+        const primitives = [
+          () => new THREE.OctahedronBufferGeometry(1.5, 0),
+          () => new THREE.TetrahedronBufferGeometry(1.5, 0),
+          () => new THREE.BoxBufferGeometry(1.5, 1.5, 1.5),
+          () => new THREE.TorusBufferGeometry(1.2, 0.4, 8, 16),
+          () => new THREE.DodecahedronBufferGeometry(1.2, 0),
+          () => new THREE.IcosahedronBufferGeometry(1.2, 0),
+        ];
+
+        // === ANALYTIC SHADERS ===
+        const analyticVertexShader = `
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            varying vec3 vNormal;
+            void main() {
+                vUv = uv;
+                vPosition = position;
+                vNormal = normalize(normalMatrix * normal);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const analyticFragmentShader = `
+            uniform float uTime;
+            uniform float uActivation;
+            uniform float uPulse;
+            varying vec2 vUv;
+            varying vec3 vPosition;
+            varying vec3 vNormal;
+
+            void main() {
+                float scan = fract(vPosition.y * 3.0 - uTime * 1.5);
+                float scanLine = smoothstep(0.48, 0.5, scan) * smoothstep(0.52, 0.5, scan);
+                
+                float rim = pow(1.0 - max(0.0, dot(vNormal, vec3(0.0, 0.0, 1.0))), 2.0);
+                
+                vec3 baseColor = vec3(0.0, 0.4, 0.8);
+                vec3 activeColor = vec3(0.0, 1.0, 1.0);
+                vec3 color = mix(baseColor, activeColor, uActivation + uPulse);
+                
+                color += scanLine * vec3(0.5, 1.0, 1.0) * (0.8 + uActivation);
+                
+                float alpha = 0.5 + rim * 0.4 + uActivation * 0.4;
+                
+                gl_FragColor = vec4(color, alpha);
+            }
+        `;
+
+        // === AUDITOR SHADERS ===
+        const auditorBeamVertexShader = `
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const auditorBeamFragmentShader = `
+            uniform float uTime;
+            uniform float uActivation;
+            varying vec2 vUv;
+
+            void main() {
+                float depth = vUv.y; 
+                float fade = smoothstep(0.0, 0.4, depth); 
+                
+                float stripes = fract(depth * 15.0 - uTime * 3.0);
+                float line = smoothstep(0.4, 0.6, stripes) * smoothstep(0.8, 0.6, stripes);
+                
+                float noise = fract(sin(dot(vUv, vec2(12.9898, 78.233)) + uTime) * 43758.5453);
+                
+                vec3 baseCol = vec3(0.1, 0.9, 0.4); 
+                vec3 activeCol = vec3(1.0, 0.8, 0.1); 
+                vec3 finalCol = mix(baseCol, activeCol, uActivation);
+                
+                float alpha = fade * (0.1 + line * 0.3 + noise * 0.1) * (0.3 + uActivation * 0.7);
+                
+                gl_FragColor = vec4(finalCol, alpha);
+            }
+        `;
+
+        const auditorDiskFragmentShader = `
+            uniform float uTime;
+            uniform float uActivation;
+            varying vec2 vUv;
+            void main() {
+                vec2 pc = vUv - 0.5;
+                float dist = length(pc) * 2.0; 
+                if (dist > 1.0) discard;
+                
+                float rings = fract(dist * 6.0 - uTime * 2.0);
+                float rAlpha = smoothstep(0.8, 1.0, rings);
+                
+                float angle = atan(pc.y, pc.x);
+                float sweep = smoothstep(0.0, 0.15, fract(angle / 6.2831 + uTime * 3.0));
+                
+                vec3 col = mix(vec3(0.1, 0.9, 0.4), vec3(1.0, 0.8, 0.1), uActivation);
+                
+                float alpha = (rAlpha * 0.4 + sweep * 0.6) * (1.0 - dist) * (0.3 + uActivation * 0.7);
+                gl_FragColor = vec4(col, alpha);
+            }
+        `;
+
+        // === COGNITIVE SHADERS ===
+        const cognitiveVertexShader = `
+            varying vec2 vUv;
+            varying vec3 vPos;
+            void main() {
+                vUv = uv;
+                vPos = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const cognitiveFragmentShader = `
+            uniform float uTime;
+            uniform float uActivation;
+            varying vec2 vUv;
+            varying vec3 vPos;
+            void main() {
+                float n = sin(vPos.x*4.0 + uTime*2.0)*sin(vPos.y*4.0 - uTime)*sin(vPos.z*4.0 + uTime);
+                float intensity = n * 0.5 + 0.5;
+                vec3 baseCol = vec3(0.3, 0.0, 0.6);
+                vec3 activeCol = vec3(1.0, 0.2, 0.8);
+                vec3 finalCol = mix(baseCol, activeCol, intensity + uActivation);
+                float alpha = 0.6 + intensity * 0.4 + uActivation * 0.5;
+                gl_FragColor = vec4(finalCol, min(alpha, 1.0));
+            }
+        `;
+
+        // === SECURITY SHADERS ===
+        const securityVertexShader = `
+            varying vec2 vUv;
+            varying vec3 vPos;
+            void main() {
+                vUv = uv;
+                vPos = position;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+
+        const securityFragmentShader = `
+            uniform float uTime;
+            uniform float uActivation;
+            varying vec2 vUv;
+            varying vec3 vPos;
+            void main() {
+                float a = dot(vPos, vec3(1.0, 0.0, 0.0)) * 6.0;
+                float b = dot(vPos, vec3(0.5, 0.866, 0.0)) * 6.0;
+                float c = dot(vPos, vec3(-0.5, 0.866, 0.0)) * 6.0;
+                float grid = sin(a)*sin(b)*sin(c);
+                float edge = smoothstep(0.0, 0.15, abs(grid));
+                
+                float scan = fract(vPos.y * 2.0 - uTime);
+                float scanline = smoothstep(0.9, 1.0, scan);
+                
+                vec3 idleCol = vec3(0.1, 0.0, 0.3);
+                vec3 activeCol = vec3(1.0, 0.0, 0.2);
+                vec3 edgeCol = mix(vec3(0.5, 0.1, 0.8), vec3(1.0, 0.0, 0.0), uActivation + scanline);
+                
+                vec3 finalCol = mix(edgeCol, mix(idleCol, activeCol, uActivation), edge);
+                float alpha = (1.0 - edge) * (0.3 + uActivation * 0.7 + scanline * 0.5);
+                gl_FragColor = vec4(finalCol, min(alpha, 1.0));
+            }
+        `;
+
+        for (let i = 0; i < 6; i++) {
+          const group = new THREE.Group();
+          group.position.copy(layoutCircular.agents[i]);
+          const auraMat = auraMaterialTpl.clone();
+
+          if (i === 1) {
+            // Agente Analítico
+            const analyticCoreMat = new THREE.ShaderMaterial({
+              vertexShader: analyticVertexShader,
+              fragmentShader: analyticFragmentShader,
+              uniforms: {
+                uTime: { value: 0 },
+                uActivation: { value: 0 },
+                uPulse: { value: 0 },
+              },
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+              wireframe: false,
+            });
+
+            const analyticCore = new THREE.Mesh(
+              new THREE.OctahedronBufferGeometry(1.2, 1),
+              analyticCoreMat,
+            );
+            group.add(analyticCore);
+
+            const rings = [];
+            const matPlane = new THREE.MeshBasicMaterial({
+              color: 0x00ffff,
+              transparent: true,
+              opacity: 0.3,
+              side: THREE.DoubleSide,
+            });
+            for (let j = 0; j < 3; j++) {
+              const planeGeom = new THREE.RingBufferGeometry(
+                1.5 + j * 0.4,
+                1.55 + j * 0.4,
+                32,
+              );
+              const ringObj = new THREE.Mesh(planeGeom, matPlane.clone());
+              ringObj.rotation.x = Math.random() * Math.PI;
+              ringObj.rotation.y = Math.random() * Math.PI;
+              rings.push(ringObj);
+              group.add(ringObj);
+            }
+
+            auraMat.uniforms.uColor.value.setHex(0x00aaff);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              auraMat: auraMat,
+              isAnalytic: true,
+              analyticCore: analyticCore,
+              analyticRings: rings,
+            };
+          } else if (i === 2) {
+            // Agente Auditor
+            const coreGeom = new THREE.CylinderBufferGeometry(0.8, 0.2, 1.5, 6);
+            const coreMat = new THREE.MeshStandardMaterial({
+              color: 0x222222,
+              emissive: 0x003311,
+              metalness: 0.9,
+              roughness: 0.2,
+            });
+            const auditorCore = new THREE.Mesh(coreGeom, coreMat);
+            group.add(auditorCore);
+
+            const eyeGeom = new THREE.SphereBufferGeometry(0.3, 16, 16);
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x00ff66 });
+            const eye = new THREE.Mesh(eyeGeom, eyeMat);
+            eye.position.y = -0.75;
+            auditorCore.add(eye);
+
+            const beamGeom = new THREE.ConeBufferGeometry(2.5, 5, 32, 1, true);
+            beamGeom.translate(0, -2.5, 0);
+
+            const beamMat = new THREE.ShaderMaterial({
+              vertexShader: auditorBeamVertexShader,
+              fragmentShader: auditorBeamFragmentShader,
+              uniforms: {
+                uTime: { value: 0 },
+                uActivation: { value: 0 },
+              },
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            });
+            const auditorBeam = new THREE.Mesh(beamGeom, beamMat);
+            auditorBeam.position.y = -0.75;
+            group.add(auditorBeam);
+
+            const diskGeom = new THREE.PlaneBufferGeometry(5, 5);
+            const diskMat = new THREE.ShaderMaterial({
+              vertexShader: auditorBeamVertexShader,
+              fragmentShader: auditorDiskFragmentShader,
+              uniforms: {
+                uTime: { value: 0 },
+                uActivation: { value: 0 },
+              },
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            });
+            const auditorDisk = new THREE.Mesh(diskGeom, diskMat);
+            auditorDisk.rotation.x = -Math.PI / 2;
+            auditorDisk.position.y = -5.75;
+            group.add(auditorDisk);
+
+            const satellites = [];
+            const satGeom = new THREE.OctahedronBufferGeometry(0.3, 0);
+            const satMat = new THREE.MeshBasicMaterial({
+              color: 0x00ffaa,
+              wireframe: true,
+            });
+            for (let s = 0; s < 3; s++) {
+              const sat = new THREE.Mesh(satGeom, satMat.clone());
+              satellites.push({ mesh: sat, angle: (s / 3) * Math.PI * 2 });
+              group.add(sat);
+            }
+
+            auraMat.uniforms.uColor.value.setHex(0x00ff66);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              auraMat: auraMat,
+              isAuditor: true,
+              auditorCore: auditorCore,
+              auditorEye: eye,
+              auditorBeam: auditorBeam,
+              auditorDisk: auditorDisk,
+              satellites: satellites,
+            };
+          } else if (i === 0) {
+            // Agente Cognitivo
+            const coreGeom = new THREE.IcosahedronBufferGeometry(1.2, 2);
+            const coreMat = new THREE.ShaderMaterial({
+              vertexShader: cognitiveVertexShader,
+              fragmentShader: cognitiveFragmentShader,
+              uniforms: { uTime: { value: 0 }, uActivation: { value: 0 } },
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+            });
+            const cogCore = new THREE.Mesh(coreGeom, coreMat);
+            group.add(cogCore);
+
+            const nodes = [];
+            const nodeGeom = new THREE.SphereBufferGeometry(0.2, 8, 8);
+            const nodeMat = new THREE.MeshBasicMaterial({ color: 0xaa22ff });
+            for (let n = 0; n < 5; n++) {
+              const mesh = new THREE.Mesh(nodeGeom, nodeMat.clone());
+              nodes.push({
+                mesh,
+                offset: Math.random() * Math.PI * 2,
+                speed: 0.5 + Math.random(),
+              });
+              group.add(mesh);
+            }
+
+            auraMat.uniforms.uColor.value.setHex(0xaa22ff);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              isCognitive: true,
+              cogCore: cogCore,
+              nodes: nodes,
+              auraMat: auraMat,
+            };
+          } else if (i === 3) {
+            // Agente Ejecutor
+            const coreGeom = new THREE.CylinderBufferGeometry(0.0, 0.8, 2.5, 4);
+            const coreMat = new THREE.MeshStandardMaterial({
+              color: 0xff5500,
+              emissive: 0x662200,
+              metalness: 0.2,
+              roughness: 0.4,
+            });
+            const execCore = new THREE.Mesh(coreGeom, coreMat);
+
+            const execCoreBottom = new THREE.Mesh(coreGeom, coreMat);
+            execCoreBottom.rotation.x = Math.PI;
+            execCoreBottom.position.y = -2.5;
+            const execGroupCenter = new THREE.Group();
+            execGroupCenter.add(execCore);
+            execGroupCenter.add(execCoreBottom);
+            execGroupCenter.position.y = 1.25;
+            group.add(execGroupCenter);
+
+            const ringGeom = new THREE.TorusBufferGeometry(1.5, 0.15, 4, 12);
+            const ringMat = new THREE.MeshStandardMaterial({
+              color: 0x888888,
+              emissive: 0x222222,
+              metalness: 0.3,
+              roughness: 0.4,
+            });
+            const rings = [];
+            for (let r = 0; r < 3; r++) {
+              const ring = new THREE.Mesh(ringGeom, ringMat.clone());
+              ring.rotation.x = Math.PI / 2;
+              ring.position.y = (r - 1) * 0.8;
+              rings.push({ mesh: ring, dir: r % 2 === 0 ? 1 : -1 });
+              group.add(ring);
+            }
+
+            auraMat.uniforms.uColor.value.setHex(0xff3300);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              isExecutor: true,
+              execCoreTop: execCore,
+              execCoreBottom: execCoreBottom,
+              execGroupCenter: execGroupCenter,
+              rings: rings,
+              auraMat: auraMat,
+            };
+          } else if (i === 4) {
+            // Agente Integración
+            const centerGeom = new THREE.SphereBufferGeometry(0.5, 16, 16);
+            const centerMat = new THREE.MeshBasicMaterial({ color: 0x00ffff });
+            const intCenter = new THREE.Mesh(centerGeom, centerMat);
+            group.add(intCenter);
+
+            const knotGeom = new THREE.TorusKnotBufferGeometry(1.0, 0.1, 64, 8);
+            const knotMat = new THREE.MeshBasicMaterial({
+              color: 0x0088ff,
+              wireframe: true,
+              transparent: true,
+              opacity: 0.8,
+              blending: THREE.AdditiveBlending,
+            });
+            const knots = [];
+            for (let k = 0; k < 3; k++) {
+              const knot = new THREE.Mesh(knotGeom, knotMat.clone());
+              knot.rotation.set(
+                Math.random() * Math.PI,
+                Math.random() * Math.PI,
+                0,
+              );
+              knots.push({
+                mesh: knot,
+                axis: new THREE.Vector3(
+                  Math.random(),
+                  Math.random(),
+                  Math.random(),
+                ).normalize(),
+              });
+              group.add(knot);
+            }
+
+            auraMat.uniforms.uColor.value.setHex(0x00aaaa);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              isIntegration: true,
+              intCenter: intCenter,
+              knots: knots,
+              auraMat: auraMat,
+            };
+          } else if (i === 5) {
+            // Agente Seguridad
+            const coreGeom = new THREE.BoxBufferGeometry(1.5, 1.5, 1.5);
+            const coreMat = new THREE.MeshStandardMaterial({
+              color: 0x331133,
+              emissive: 0x220022,
+              metalness: 0.2,
+              roughness: 0.5,
+            });
+            const secCore = new THREE.Mesh(coreGeom, coreMat);
+            group.add(secCore);
+
+            const forcefieldGeom = new THREE.IcosahedronBufferGeometry(2.0, 2);
+            const forcefieldMat = new THREE.ShaderMaterial({
+              vertexShader: securityVertexShader,
+              fragmentShader: securityFragmentShader,
+              uniforms: { uTime: { value: 0 }, uActivation: { value: 0 } },
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+            });
+            const forcefield = new THREE.Mesh(forcefieldGeom, forcefieldMat);
+            group.add(forcefield);
+
+            auraMat.uniforms.uColor.value.setHex(0xff00ff);
+            const auraMesh = new THREE.Mesh(auraGeometry, auraMat);
+            group.add(auraMesh);
+
+            group.userData = {
+              id: i + 1,
+              name: agentNames[i],
+              basePos: layoutCircular.agents[i].clone(),
+              phaseOffset: Math.random() * Math.PI * 2,
+              targetScale: 1.0,
+              currentScale: 1.0,
+              pulse: 0.0,
+              activationLevel: 0.0,
+              isSecurity: true,
+              secCore: secCore,
+              forcefield: forcefield,
+              auraMat: auraMat,
+            };
+          }
+
+          orchestrationGroup.add(group);
+
+          agents.push(group);
+        }
+        // === NODE 7: PACKAGER ===
+        const packagerGroup = new THREE.Group();
+        packagerGroup.position.copy(layoutCircular.packager);
+
+        const packagerLight = new THREE.PointLight(0xffcc00, 2.0, 50);
+        packagerGroup.add(packagerLight);
+
+        // 1. Central Quantum Core (Shader)
+        const pkgCoreVertex = `
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            void main() {
+                vUv = uv;
+                vNormal = normalize(normalMatrix * normal);
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `;
+        const pkgCoreFrag = `
+            uniform float uTime;
+            uniform float uPulse;
+            varying vec2 vUv;
+            varying vec3 vNormal;
+            void main() {
+                float rim = pow(1.0 - abs(dot(vNormal, vec3(0.0, 0.0, 1.0))), 3.0);
+                
+                // Hexagonal or grid pattern logic
+                vec2 grid = abs(fract(vUv * 10.0 + uTime * 0.2) - 0.5);
+                float line = smoothstep(0.4, 0.5, max(grid.x, grid.y));
+                
+                vec3 baseCol = vec3(0.8, 0.3, 0.0);
+                vec3 edgeCol = vec3(1.0, 0.8, 0.2);
+                vec3 pulseCol = mix(baseCol, edgeCol, uPulse);
+                
+                vec3 color = mix(pulseCol, vec3(1.0), line * 0.5) + rim * vec3(1.0, 0.8, 0.4);
+                
+                gl_FragColor = vec4(color, 0.9 + uPulse * 0.1);
+            }
+        `;
+        const packagerCoreMat = new THREE.ShaderMaterial({
+          vertexShader: pkgCoreVertex,
+          fragmentShader: pkgCoreFrag,
+          uniforms: {
+            uTime: { value: 0 },
+            uPulse: { value: 0 },
+          },
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+        });
+        const packagerCoreMesh = new THREE.Mesh(
+          new THREE.IcosahedronBufferGeometry(1.5, 2),
+          packagerCoreMat,
+        );
+        packagerGroup.add(packagerCoreMesh);
+
+        // 2. Data Hex-Rings (3 intersecting rings)
+        const ringGeom = new THREE.TorusBufferGeometry(3.0, 0.05, 8, 64);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: 0xffaa00,
+          transparent: true,
+          opacity: 0.6,
+        });
+        const rings = [];
+        for (let i = 0; i < 3; i++) {
+          const r = new THREE.Mesh(ringGeom, ringMat.clone());
+          r.rotation.x = Math.random() * Math.PI;
+          r.rotation.y = Math.random() * Math.PI;
+          rings.push(r);
+          packagerGroup.add(r);
+        }
+
+        // 3. Outer Data Cage (Icosahedron Wireframe)
+        const cageGeom = new THREE.IcosahedronBufferGeometry(3.8, 1);
+        const cageMat = new THREE.MeshBasicMaterial({
+          color: 0xff5500,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.3,
+        });
+        const cage = new THREE.Mesh(cageGeom, cageMat);
+        packagerGroup.add(cage);
+
+        packagerGroup.userData = {
+          id: 7,
+          name: "Empaquetador de Resultados",
+          basePos: layoutCircular.packager.clone(),
+          targetScale: 1.0,
+          currentScale: 1.0,
+          pulse: 0.0,
+          coreMat: packagerCoreMat,
+          rings: rings,
+          cage: cage,
+        };
+        orchestrationGroup.add(packagerGroup);
+
+        const innerAgents = [];
+
+        // --- 1. Agent Legal ---
+        const legalGroup = new THREE.Group();
+        legalGroup.position.copy(layoutCircular.innerAgents[0]);
+
+        const legalAuraMat = auraMaterialTpl.clone();
+        legalAuraMat.uniforms.uColor.value.setHex(0xffaa00);
+        const legalAura = new THREE.Mesh(auraGeometry, legalAuraMat);
+        legalGroup.add(legalAura);
+
+        const pillarGeom = new THREE.TetrahedronBufferGeometry(1.2, 0);
+        const legalMat = new THREE.MeshStandardMaterial({
+          color: 0xffaa00,
+          emissive: 0x884400,
+          metalness: 0.3,
+          roughness: 0.2,
+        });
+        const pillar = new THREE.Mesh(pillarGeom, legalMat);
+        legalGroup.add(pillar);
+
+        const scales = [];
+        const scaleGeom = new THREE.BoxBufferGeometry(0.8, 0.1, 0.8);
+        const scaleMat = new THREE.MeshStandardMaterial({
+          color: 0xffeebb,
+          emissive: 0x442200,
+          metalness: 0.5,
+          roughness: 0.2,
+        });
+        for (let i = 0; i < 2; i++) {
+          const sm = new THREE.Mesh(scaleGeom, scaleMat);
+          scales.push({ mesh: sm, angle: i * Math.PI });
+          legalGroup.add(sm);
+        }
+
+        const legalRingGeom = new THREE.TorusBufferGeometry(1.8, 0.05, 4, 32);
+        const legalRingMat = new THREE.MeshBasicMaterial({
+          color: 0xffcc00,
+          transparent: true,
+          opacity: 0.8,
+          wireframe: true,
+        });
+        const legalOrbit = new THREE.Mesh(legalRingGeom, legalRingMat);
+        legalOrbit.rotation.x = Math.PI / 2;
+        legalGroup.add(legalOrbit);
+
+        legalGroup.userData = {
+          id: 8,
+          name: "Agente Legal",
+          basePos: layoutCircular.innerAgents[0].clone(),
+          isLegal: true,
+          pillar: pillar,
+          scales: scales,
+          orbit: legalOrbit,
+          auraMat: legalAuraMat,
+          activationLevel: 0.0,
+          pulse: 0.0,
+          currentScale: 1.0,
+          targetScale: 1.0,
+        };
+        orchestrationGroup.add(legalGroup);
+        innerAgents.push(legalGroup);
+
+        // --- 2. Agent Validation ---
+        const valGroup = new THREE.Group();
+        valGroup.position.copy(layoutCircular.innerAgents[1]);
+
+        const valAuraMat = auraMaterialTpl.clone();
+        valAuraMat.uniforms.uColor.value.setHex(0x00ffaa);
+        const valAura = new THREE.Mesh(auraGeometry, valAuraMat);
+        valGroup.add(valAura);
+
+        const hexGeom = new THREE.CylinderBufferGeometry(0.8, 0.8, 1.5, 6);
+        const valMat = new THREE.MeshStandardMaterial({
+          color: 0x00ffaa,
+          emissive: 0x006633,
+          metalness: 0.5,
+          roughness: 0.2,
+        });
+        const hexCore = new THREE.Mesh(hexGeom, valMat);
+        valGroup.add(hexCore);
+
+        const scanGeom = new THREE.CylinderBufferGeometry(1.2, 1.2, 0.1, 6);
+        const valWireMat = new THREE.MeshBasicMaterial({
+          color: 0xaaffcc,
+          wireframe: true,
+          transparent: true,
+          opacity: 0.8,
+        });
+        const scanners = [];
+        for (let i = 0; i < 3; i++) {
+          const scanner = new THREE.Mesh(scanGeom, valWireMat);
+          scanners.push({ mesh: scanner, offset: i * 1.5 });
+          valGroup.add(scanner);
+        }
+
+        valGroup.userData = {
+          id: 9,
+          name: "Agente de Validación",
+          basePos: layoutCircular.innerAgents[1].clone(),
+          isValidation: true,
+          hexCore: hexCore,
+          scanners: scanners,
+          auraMat: valAuraMat,
+          activationLevel: 0.0,
+          pulse: 0.0,
+          currentScale: 1.0,
+          targetScale: 1.0,
+        };
+        orchestrationGroup.add(valGroup);
+        innerAgents.push(valGroup);
+
+        // --- Inter-Agent Link ---
+        const linkCylinder = new THREE.CylinderBufferGeometry(
+          0.1,
+          0.1,
+          1,
+          6,
+          10,
+        );
+        linkCylinder.translate(0, 0.5, 0);
+        linkCylinder.rotateX(Math.PI / 2);
+        const interLinkMat = new THREE.ShaderMaterial({
+          vertexShader: `
+                varying vec2 vUv;
+                void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
+            `,
+          fragmentShader: `
+                uniform float uTime;
+                varying vec2 vUv;
+                void main() {
+                    float stripes = fract(vUv.y * 10.0 - uTime * 4.0);
+                    float alpha = smoothstep(0.4, 0.6, stripes);
+                    vec3 col = mix(vec3(1.0, 0.8, 0.2), vec3(0.0, 1.0, 0.5), vUv.y);
+                    gl_FragColor = vec4(col, alpha * 0.6);
+                }
+            `,
+          uniforms: { uTime: { value: 0 } },
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        });
+        const interLinkMesh = new THREE.Mesh(linkCylinder, interLinkMat);
+        orchestrationGroup.add(interLinkMesh);
+
+        coreMesh.userData = {
+          id: 0,
+          name: "Orquestador Central",
+          basePos: layoutCircular.core.clone(),
+          targetScale: 1.0,
+          currentScale: 1.0,
+          pulse: 0.0,
+        };
+        coreMesh.position.copy(layoutCircular.core);
+        const allNodes = [coreMesh, ...agents, ...innerAgents, packagerGroup];
+        const hitBoxes = [];
+        const hitBoxMat = new THREE.MeshBasicMaterial({
+          visible: false,
+          wireframe: false,
+        });
+        allNodes.forEach((node) => {
+          let r = 8;
+          if (node === coreMesh) r = 10;
+          if (node === packagerGroup) r = 10;
+          const hbGeom = new THREE.SphereBufferGeometry(r, 8, 8);
+          const hitBox = new THREE.Mesh(hbGeom, hitBoxMat);
+          hitBox.userData.parentNode = node;
+          node.add(hitBox);
+          hitBoxes.push(hitBox);
+        });
+
+        // === LABELS ===
+        const nodeMappings = {
+          "Orquestador Central": "OC",
+          "Agente Cognitivo": "CG",
+          "Agente Analítico": "AN",
+          "Agente Auditor": "AU",
+          "Agente Ejecutor": "EJ",
+          "Agente de Integración": "IT",
+          "Agente de Seguridad": "SG",
+          "Agente Legal": "LG",
+          "Agente de Validación": "VD",
+          "Empaquetador de Resultados": "PKG",
+        };
+
+        const legendContent = document.getElementById("legend-content");
+        Object.keys(nodeMappings).forEach((fullName) => {
+          const shortName = nodeMappings[fullName];
+          const item = document.createElement("div");
+          item.className = "legend-item";
+          item.innerHTML = `<span class="legend-item-tag">${shortName}</span><span class="legend-item-name">${fullName}</span>`;
+          legendContent.appendChild(item);
+        });
+
+        function createLabel(name) {
+          const el = document.createElement("div");
+          el.className = "node-label";
+          el.innerText = nodeMappings[name] || name;
+          labelsContainer.appendChild(el);
+          return el;
+        }
+        allNodes.forEach((node) => {
+          node.userData.labelEl = createLabel(node.userData.name);
+        });
+
+        // === LIGHTING CONTROLS ===
+        const baseRoomLightIntensity = 1.0;
+        const baseDeskLightIntensity = 1.5;
+
+        function updateRoomLight() {
+          if (roomLightToggle.checked) {
+            const val = parseFloat(roomLightSlider.value); // 0 to 100
+            // The base requested max is 35% literal illumination limit
+            const scaledIntensity = (val / 100.0) * 0.35;
+            window.roomLight.intensity = scaledIntensity;
+            window.roomAmbient.intensity = scaledIntensity * 0.3;
+
+            if (scaledIntensity > 0.1) {
+              window.ceilDiffMat.color.setHex(0xffffff);
+            } else {
+              window.ceilDiffMat.color.setHex(0x333333);
+            }
+          } else {
+            window.roomLight.intensity = 0;
+            window.roomAmbient.intensity = 0;
+            window.ceilDiffMat.color.setHex(0x111111);
+          }
+        }
+
+        roomLightToggle.addEventListener("change", (e) => {
+          if (e.target.checked && parseFloat(roomLightSlider.value) === 0) {
+            roomLightSlider.value = "100";
+          }
+          updateRoomLight();
+        });
+        roomLightSlider.addEventListener("input", (e) => {
+          if (!roomLightToggle.checked && parseFloat(e.target.value) > 0) {
+            roomLightToggle.checked = true;
+          } else if (parseFloat(e.target.value) === 0) {
+            roomLightToggle.checked = false;
+          }
+          updateRoomLight();
+        });
+
+        // Initial setup
+        updateRoomLight();
+
+        // === CHANGE LAYOUT ===
+        layoutBtn.addEventListener("click", () => {
+          if (currentLayout === "circular") {
+            currentLayout = "pyramid";
+            layoutBtn.innerText = "VISTA: CIRCULAR";
+
+            coreMesh.userData.basePos.copy(layoutPyramid.core);
+            packagerGroup.userData.basePos.copy(layoutPyramid.packager);
+            agents.forEach((agent, i) =>
+              agent.userData.basePos.copy(layoutPyramid.agents[i]),
+            );
+            innerAgents.forEach((agent, i) =>
+              agent.userData.basePos.copy(layoutPyramid.innerAgents[i]),
+            );
+          } else {
+            currentLayout = "circular";
+            layoutBtn.innerText = "VISTA: PIRAMIDAL";
+
+            coreMesh.userData.basePos.copy(layoutCircular.core);
+            packagerGroup.userData.basePos.copy(layoutCircular.packager);
+            agents.forEach((agent, i) =>
+              agent.userData.basePos.copy(layoutCircular.agents[i]),
+            );
+            innerAgents.forEach((agent, i) =>
+              agent.userData.basePos.copy(layoutCircular.innerAgents[i]),
+            );
+          }
+        });
+
+        // === DATA STREAMS ===
+        const streamVertexShader = `
+            uniform vec3 uStart;
+            uniform vec3 uEnd;
+            uniform vec3 uControl1;
+            uniform vec3 uControl2;
+
+            varying vec2 vUv;
+            varying float vProgress;
+
+            vec3 getBezier(float t) {
+                float u = 1.0 - t;
+                float tt = t * t;
+                float uu = u * u;
+                float uuu = uu * u;
+                float ttt = tt * t;
+
+                vec3 p = uuu * uStart;
+                p += 3.0 * uu * t * uControl1;
+                p += 3.0 * u * tt * uControl2;
+                p += ttt * uEnd;
+                return p;
+            }
+
+            vec3 getDerivative(float t) {
+                float u = 1.0 - t;
+                vec3 p = 3.0 * u * u * (uControl1 - uStart);
+                p += 6.0 * u * t * (uControl2 - uControl1);
+                p += 3.0 * t * t * (uEnd - uControl2);
+                return p;
+            }
+
+            void main() {
+                vUv = uv;
+                float t = position.y + 0.5;
+                vProgress = t;
+
+                vec3 pos = getBezier(t);
+                vec3 tangent = normalize(getDerivative(t));
+                
+                vec3 up = vec3(0.0, 1.0, 0.0);
+                if (abs(dot(up, tangent)) > 0.99) {
+                    up = vec3(1.0, 0.0, 0.0);
+                }
+                vec3 right = normalize(cross(up, tangent));
+                vec3 normal = cross(tangent, right);
+
+                vec3 finalPos = pos + right * position.x + normal * position.z;
+
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(finalPos, 1.0);
+            }
+        `;
+
+        const streamFragmentShader = `
+            uniform float uTime;
+            uniform float uFlowProgress; 
+            uniform vec3 uColor;
+
+            varying vec2 vUv;
+            varying float vProgress;
+
+            void main() {
+                float distToHead = uFlowProgress - vProgress;
+                float tailLength = 0.6; 
+                
+                if (distToHead < 0.0 || distToHead > tailLength) {
+                    discard;
+                }
+                
+                float intensity = 1.0 - (distToHead / tailLength);
+                intensity = pow(intensity, 1.5); 
+                
+                float dataPattern = fract(vProgress * 50.0 - uTime * 6.0);
+                float glow = smoothstep(0.6, 1.0, dataPattern);
+                
+                vec3 finalColor = uColor + (vec3(1.0) * glow * 0.8);
+                
+                gl_FragColor = vec4(finalColor, intensity * (0.5 + glow * 0.5));
+            }
+        `;
+
+        const dataStreams = [];
+        const dataStreamPool = [];
+        const streamGeometry = new THREE.CylinderBufferGeometry(
+          0.12,
+          0.12,
+          1,
+          8,
+          80,
+        );
+        const _tempDir = new THREE.Vector3();
+        const _upOffset = new THREE.Vector3(0, 8, 0);
+        const _downOffset = new THREE.Vector3(0, -8, 0);
+
+        for (let i = 0; i < 30; i++) {
+          const material = new THREE.ShaderMaterial({
+            vertexShader: streamVertexShader,
+            fragmentShader: streamFragmentShader,
+            uniforms: {
+              uTime: { value: 0 },
+              uFlowProgress: { value: 0 },
+              uStart: { value: new THREE.Vector3() },
+              uEnd: { value: new THREE.Vector3() },
+              uControl1: { value: new THREE.Vector3() },
+              uControl2: { value: new THREE.Vector3() },
+              uColor: { value: new THREE.Color() },
+            },
+            transparent: true,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            side: THREE.DoubleSide,
+          });
+          const mesh = new THREE.Mesh(streamGeometry, material);
+          mesh.frustumCulled = false;
+          mesh.visible = false;
+          dataStreamPool.push({ mesh, material });
+        }
+
+        function createDataStream(
+          startNode,
+          endNode,
+          delay,
+          onComplete,
+          colorHex = 0x00ffff,
+        ) {
+          let streamObj;
+          if (dataStreamPool.length > 0) {
+            streamObj = dataStreamPool.pop();
+          } else {
+            const material = new THREE.ShaderMaterial({
+              vertexShader: streamVertexShader,
+              fragmentShader: streamFragmentShader,
+              uniforms: {
+                uTime: { value: 0 },
+                uFlowProgress: { value: 0 },
+                uStart: { value: new THREE.Vector3() },
+                uEnd: { value: new THREE.Vector3() },
+                uControl1: { value: new THREE.Vector3() },
+                uControl2: { value: new THREE.Vector3() },
+                uColor: { value: new THREE.Color() },
+              },
+              transparent: true,
+              blending: THREE.AdditiveBlending,
+              depthWrite: false,
+              side: THREE.DoubleSide,
+            });
+            const mesh = new THREE.Mesh(streamGeometry, material);
+            mesh.frustumCulled = false;
+            streamObj = { mesh, material };
+          }
+
+          if (!streamObj.mesh.parent) {
+            orchestrationGroup.add(streamObj.mesh);
+          }
+          streamObj.mesh.visible = true;
+          streamObj.material.uniforms.uColor.value.setHex(colorHex);
+
+          dataStreams.push({
+            mesh: streamObj.mesh,
+            material: streamObj.material,
+            startNode,
+            endNode,
+            delay,
+            progress: -0.1, // Start slightly before
+            active: false,
+            hasFired: false,
+            onComplete,
+          });
+        }
+
+        // === RAYCASTING ===
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        const _tempVector = new THREE.Vector3();
+        let hoveredNode = null;
+
+        window.addEventListener("mousemove", (e) => {
+          if (e.clientX === undefined || e.clientY === undefined) return;
+          if (!mouse) return;
+          mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+          mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+          raycaster.setFromCamera(mouse, camera);
+          const intersects = raycaster.intersectObjects(hitBoxes, false);
+
+          let found = null;
+          if (intersects.length > 0) {
+            found = intersects[0].object.userData.parentNode;
+          }
+
+          if (hoveredNode && hoveredNode !== found) {
+            hoveredNode.userData.targetScale = 1.0;
+            hoveredNode = null;
+          }
+
+          if (found) {
+            if (hoveredNode !== found) {
+              hoveredNode = found;
+              hoveredNode.userData.targetScale = 1.25;
+              document.body.style.cursor = "pointer";
+              tooltip.innerHTML = found.userData.name;
+              tooltip.style.opacity = 1;
+              tooltip.style.left = "0px";
+              tooltip.style.top = "0px";
+            }
+            found.getWorldPosition(_tempVector);
+            _tempVector.project(camera);
+            const x = (_tempVector.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (_tempVector.y * -0.5 + 0.5) * window.innerHeight;
+            tooltip.style.transform = `translate3d(${x}px, ${y}px, 0) translate(-50%, -150%)`;
+          } else {
+            if (document.body.style.cursor !== "default") {
+              document.body.style.cursor = "default";
+              tooltip.style.opacity = 0;
+            }
+          }
+        });
+
+        // === LOOP & EXECUTIONS ===
+        const lerp = (a, b, t) => a + (b - a) * t;
+        let sequenceActive = false;
+
+        execBtn.addEventListener("click", () => {
+          if (sequenceActive) return;
+          sequenceActive = true;
+          execBtn.innerText = "PROCESANDO...";
+          execBtn.style.color = "#ff00ff";
+          execBtn.style.borderColor = "#ff00ff";
+
+          coreMesh.userData.pulse = 1.0;
+          let completedAgents = 0;
+
+          agents.forEach((agent, i) => {
+            const delay = i * 0.8 + Math.random() * 0.5;
+            createDataStream(
+              coreMesh,
+              agent,
+              delay,
+              () => {
+                agent.userData.pulse = 1.5;
+                if (agent.userData.isAnalytic) {
+                  agent.userData.analyticCore.material.uniforms.uPulse.value = 1.0;
+                  agent.userData.analyticRings.forEach((r) =>
+                    r.material.color.setHex(0x00ffff),
+                  );
+                } else if (agent.userData.isAuditor) {
+                  agent.userData.auditorEye.material.color.setHex(0xffff00);
+                }
+                agent.userData.isActive = true;
+
+                completedAgents++;
+
+                // When all outer agents are done
+                if (completedAgents === agents.length) {
+                  setTimeout(() => {
+                    let innerStreamsCompleted = 0;
+                    agents.forEach((a, idx) => {
+                      if (a.userData.isAnalytic) {
+                        a.userData.analyticCore.material.uniforms.uPulse.value = 0.0;
+                        a.userData.analyticRings.forEach((r) =>
+                          r.material.color.setHex(0x00aaff),
+                        );
+                      } else if (a.userData.isAuditor) {
+                        a.userData.auditorEye.material.color.setHex(0x00ff66);
+                      }
+                      a.userData.isActive = false;
+                      a.userData.pulse = 1.0;
+
+                      const targetInner = innerAgents[idx % 2];
+
+                      createDataStream(
+                        a,
+                        targetInner,
+                        0,
+                        () => {
+                          targetInner.userData.pulse = 1.0;
+                          targetInner.userData.isActive = true;
+
+                          innerStreamsCompleted++;
+
+                          if (innerStreamsCompleted === agents.length) {
+                            // Now route from inner to packager
+                            setTimeout(() => {
+                              innerAgents.forEach((innerA) => {
+                                innerA.userData.isActive = false;
+
+                                createDataStream(
+                                  innerA,
+                                  packagerGroup,
+                                  0,
+                                  () => {
+                                    packagerGroup.userData.pulse = 1.0;
+                                    packagerGroup.userData.coreMat.uniforms.uPulse.value = 1.0;
+                                    packagerGroup.userData.rings.forEach((r) =>
+                                      r.material.color.setHex(0xffffff),
+                                    );
+                                    setTimeout(() => {
+                                      packagerGroup.userData.coreMat.uniforms.uPulse.value = 0.0;
+                                      packagerGroup.userData.rings.forEach(
+                                        (r) =>
+                                          r.material.color.setHex(0xffaa00),
+                                      );
+                                    }, 800);
+                                  },
+                                  0xffaa00,
+                                );
+                              });
+                            }, 800);
+                          }
+                        },
+                        0x00ffaa,
+                      );
+                    });
+                  }, 1500);
+                }
+              },
+              0x00ffff,
+            );
+          });
+
+          setTimeout(() => {
+            sequenceActive = false;
+            execBtn.innerText = "EJECUTAR PROTOCOLO";
+            execBtn.style.color = "#00ffff";
+            execBtn.style.borderColor = "#00ffff";
+          }, 13000);
+        });
+
+        const clock = new THREE.Clock();
+
+        // --- PERFORMANCE OPTIMIZATIONS: Pre-allocate hot-loop variables to prevent GC stutter ---
+        const _colorAuditorBase = new THREE.Color(0x00ff66);
+        const _colorAuditorActive = new THREE.Color(0xffff00);
+        const _colorCognitiveBase = new THREE.Color(0xaa22ff);
+        const _colorCognitiveActive = new THREE.Color(0xff88ff);
+        const _tempEyeColor = new THREE.Color();
+
+        function animate() {
+          requestAnimationFrame(animate);
+          let dt = clock.getDelta();
+          if (dt > 0.1) dt = 0.1; // Clamp dt to avoid physics explosion
+          const time = clock.getElapsedTime();
+
+          controls.update();
+
+          // Environment uniform updates
+
+          coreMaterial.uniforms.time.value = time;
+          coreMesh.rotation.y = time * 0.2;
+          coreMesh.rotation.x = time * 0.1;
+
+          let corePulse = coreMesh.userData.pulse || 0;
+          coreLight.intensity = 2.0 + corePulse * 4.0;
+          coreLight.color.setHex(corePulse > 0.1 ? 0xffffff : 0x00ffff);
+
+          allNodes.forEach((node) => {
+            if (node.userData.pulse > 0) {
+              node.userData.pulse -= dt * 2.0;
+              if (node.userData.pulse < 0) node.userData.pulse = 0;
+            }
+            const pulseScale =
+              1.0 + Math.sin(node.userData.pulse * Math.PI) * 0.3;
+
+            const scaleLerpFactor = 1.0 - Math.exp(-dt * 12.0);
+            node.userData.currentScale +=
+              (node.userData.targetScale - node.userData.currentScale) *
+              scaleLerpFactor;
+
+            const finalScale = node.userData.currentScale * pulseScale;
+
+            node.scale.setScalar(finalScale);
+            node.rotation.y += dt * 0.5;
+            node.rotation.x += dt * 0.3;
+
+            // Labels projection
+            node.getWorldPosition(_tempVector);
+            _tempVector.project(camera);
+            if (_tempVector.z > 1) {
+              if (node.userData.labelEl.style.opacity !== "0") {
+                node.userData.labelEl.style.opacity = "0";
+              }
+            } else {
+              if (node.userData.labelEl.style.opacity !== "0.8") {
+                node.userData.labelEl.style.opacity = "0.8";
+                node.userData.labelEl.style.left = "0px";
+                node.userData.labelEl.style.top = "0px";
+              }
+              const x = (_tempVector.x * 0.5 + 0.5) * window.innerWidth;
+              const y = (_tempVector.y * -0.5 + 0.5) * window.innerHeight;
+              const yOffset = 40 * finalScale;
+              node.userData.labelEl.style.transform = `translate3d(${x}px, ${y + yOffset}px, 0) translate(-50%, -50%)`;
+            }
+          });
+
+          coreMesh.position.lerp(coreMesh.userData.basePos, dt * 2.0);
+          coreLight.position.copy(coreMesh.position);
+
+          agents.forEach((agent) => {
+            const d = agent.userData;
+            const targetY =
+              d.basePos.y + Math.sin(time * 0.5 + d.phaseOffset) * 2.0;
+            agent.position.x = lerp(agent.position.x, d.basePos.x, dt * 2.0);
+            agent.position.z = lerp(agent.position.z, d.basePos.z, dt * 2.0);
+            agent.position.y = lerp(agent.position.y, targetY, dt * 2.0);
+
+            // --- NEW ACTIVATION ANIMATION ---
+            const targetActivation = d.isActive ? 1.0 : 0.0;
+            const lerpFactor = 1.0 - Math.exp(-dt * 10.0);
+            d.activationLevel +=
+              (targetActivation - d.activationLevel) * lerpFactor;
+
+            // Spectacular BOUNCE pop effect
+            const pop =
+              Math.sin(d.activationLevel * Math.PI) *
+              Math.pow(Math.sin(d.activationLevel * Math.PI), 0.5) *
+              1.5;
+
+            // Adding a sharp rotation spin when activating
+            agent.rotation.y += dt * (0.2 + pop * 10.0);
+
+            if (d.auraMat) {
+              d.auraMat.uniforms.uTime.value = time;
+              d.auraMat.uniforms.uActivation.value = d.activationLevel;
+            }
+
+            if (d.isAnalytic) {
+              d.analyticCore.material.uniforms.uTime.value = time;
+              d.analyticCore.material.uniforms.uActivation.value =
+                d.activationLevel;
+              d.analyticCore.material.uniforms.uPulse.value = lerp(
+                d.analyticCore.material.uniforms.uPulse.value,
+                0.0,
+                dt * 8.0,
+              );
+
+              const pulseFactor = 1.0 + d.activationLevel * 5.0 + pop;
+              d.analyticRings.forEach((r, idx) => {
+                r.rotation.y += dt * (0.5 + idx * 0.2) * pulseFactor * 2.0;
+                r.rotation.z += dt * (0.3 + idx * 0.3) * pulseFactor * 2.0;
+                r.scale.setScalar(
+                  lerp(1.0, 1.4, d.activationLevel) + pop * 0.5,
+                );
+              });
+
+              d.analyticCore.scale.setScalar(
+                lerp(1.0, 1.5, d.activationLevel) + pop,
+              );
+              d.analyticCore.rotation.y += dt * (1.0 + d.activationLevel * 4.0);
+            } else if (d.isAuditor) {
+              d.auditorBeam.material.uniforms.uTime.value = time;
+              d.auditorBeam.material.uniforms.uActivation.value =
+                d.activationLevel;
+              d.auditorDisk.material.uniforms.uTime.value = time;
+              d.auditorDisk.material.uniforms.uActivation.value =
+                d.activationLevel;
+
+              d.auditorCore.rotation.y += dt * (0.5 + d.activationLevel * 6.0);
+
+              const beamScale = lerp(0.8, 1.8, d.activationLevel) + pop;
+              d.auditorBeam.scale.set(beamScale, 1.0, beamScale);
+              d.auditorDisk.scale.set(beamScale, beamScale, 1.0);
+
+              _tempEyeColor
+                .copy(_colorAuditorBase)
+                .lerp(_colorAuditorActive, d.activationLevel);
+              d.auditorEye.material.color.copy(_tempEyeColor);
+              d.auditorEye.scale.setScalar(1.0 + pop * 0.5);
+
+              const orbitSpeed = 1.0 + d.activationLevel * 8.0;
+              const orbitRadius = 1.5 + d.activationLevel * 1.2 + pop;
+              d.satellites.forEach((satData, idx) => {
+                satData.angle += dt * orbitSpeed;
+                satData.mesh.position.x = Math.cos(satData.angle) * orbitRadius;
+                satData.mesh.position.z = Math.sin(satData.angle) * orbitRadius;
+                satData.mesh.position.y =
+                  Math.sin(time * 5.0 + idx) * (0.5 + d.activationLevel);
+                satData.mesh.rotation.x += dt * (1.0 + d.activationLevel * 4.0);
+                satData.mesh.rotation.y += dt * (1.5 + d.activationLevel * 4.0);
+                satData.mesh.material.color.copy(_tempEyeColor);
+              });
+            } else if (d.isCognitive) {
+              d.cogCore.material.uniforms.uTime.value = time;
+              d.cogCore.material.uniforms.uActivation.value = d.activationLevel;
+              d.cogCore.rotation.y += dt * (0.3 + d.activationLevel * 4.0);
+              d.cogCore.rotation.x += dt * (0.1 + d.activationLevel * 2.0);
+              d.cogCore.scale.setScalar(
+                lerp(1.0, 1.4, d.activationLevel) + pop,
+              );
+
+              const orbitSpeed = 0.5 + d.activationLevel * 6.0;
+              const orbitRadius = 1.5 + d.activationLevel * 1.5 + pop;
+              d.nodes.forEach((node, idx) => {
+                const t =
+                  time * node.speed * (1.0 + d.activationLevel * 2.0) +
+                  node.offset;
+                node.mesh.position.x = Math.sin(t) * Math.cos(t) * orbitRadius;
+                node.mesh.position.y = Math.sin(t) * orbitRadius;
+                node.mesh.position.z = Math.cos(t) * orbitRadius;
+                node.mesh.scale.setScalar(1.0 + pop * 0.5);
+                node.mesh.material.color
+                  .copy(_colorCognitiveBase)
+                  .lerp(_colorCognitiveActive, d.activationLevel);
+              });
+            } else if (d.isExecutor) {
+              const spinSpeed = 1.0 + d.activationLevel * 20.0;
+              d.execGroupCenter.rotation.y += dt * spinSpeed;
+              d.execCoreTop.position.y =
+                lerp(0.0, 1.0, d.activationLevel) + pop * 0.5;
+              d.execCoreBottom.position.y =
+                lerp(-2.5, -3.5, d.activationLevel) - pop * 0.5;
+              d.execCoreTop.scale.setScalar(1.0 + pop);
+              d.execCoreBottom.scale.setScalar(1.0 + pop);
+
+              d.rings.forEach((r, idx) => {
+                r.mesh.rotation.z += dt * spinSpeed * r.dir;
+                r.mesh.scale.setScalar(
+                  lerp(1.0, 1.6 + idx * 0.3, d.activationLevel) + pop,
+                );
+              });
+
+              d.execCoreTop.material.emissiveIntensity = lerp(
+                1.0,
+                8.0,
+                d.activationLevel,
+              );
+              d.execCoreBottom.material.emissiveIntensity = lerp(
+                1.0,
+                8.0,
+                d.activationLevel,
+              );
+            } else if (d.isIntegration) {
+              d.intCenter.scale.setScalar(lerp(1.0, 1.8, d.activationLevel));
+
+              const knotSpeed = 0.5 + d.activationLevel * 4.0;
+              d.knots.forEach((k) => {
+                k.mesh.rotateOnAxis(k.axis, dt * knotSpeed);
+                k.mesh.scale.setScalar(lerp(1.0, 1.5, d.activationLevel));
+                k.mesh.material.opacity = lerp(0.6, 1.0, d.activationLevel);
+              });
+            } else if (d.isSecurity) {
+              d.secCore.rotation.y += dt * 0.2;
+              d.secCore.rotation.x += dt * 0.1;
+
+              d.forcefield.material.uniforms.uTime.value = time;
+              d.forcefield.material.uniforms.uActivation.value =
+                d.activationLevel;
+
+              const ffScale = lerp(1.0, 1.2, d.activationLevel);
+              d.forcefield.scale.setScalar(ffScale);
+              d.forcefield.rotation.y -= dt * (0.1 + d.activationLevel * 2.0);
+            }
+          });
+
+          innerAgents.forEach((agent) => {
+            const d = agent.userData;
+            const targetY = d.basePos.y + Math.sin(time + d.id) * 1.5;
+            agent.position.x = lerp(agent.position.x, d.basePos.x, dt * 2.0);
+            agent.position.z = lerp(agent.position.z, d.basePos.z, dt * 2.0);
+            agent.position.y = lerp(agent.position.y, targetY, dt * 2.0);
+
+            const targetActivation = d.isActive ? 1.0 : 0.0;
+            const lerpFactor = 1.0 - Math.exp(-dt * 10.0);
+            d.activationLevel +=
+              (targetActivation - d.activationLevel) * lerpFactor;
+
+            const pop =
+              Math.sin(d.activationLevel * Math.PI) *
+              Math.pow(Math.sin(d.activationLevel * Math.PI), 0.5) *
+              1.5;
+            agent.rotation.y += dt * (0.2 + pop * 10.0);
+
+            const activation = d.activationLevel;
+            const activeScale = 1.0 + activation * 0.5 + pop * 0.5;
+
+            if (d.auraMat) {
+              d.auraMat.uniforms.uTime.value = time;
+              d.auraMat.uniforms.uActivation.value = activation;
+            }
+
+            if (d.isLegal) {
+              d.pillar.rotation.y = time * 0.5 + activation * 10.0;
+              d.pillar.material.emissiveIntensity = 1.0 + activation * 8.0;
+              d.pillar.scale.setScalar(1.0 + pop * 0.5);
+
+              const bounce = Math.sin(time * 2.0) * 0.3;
+              const balance = bounce * (1.0 - activation);
+
+              d.scales.forEach((sc, i) => {
+                sc.angle += dt * (1.0 + activation * 4.0);
+                sc.mesh.position.x = Math.cos(sc.angle) * 2.0;
+                sc.mesh.position.z = Math.sin(sc.angle) * 2.0;
+                const yOffset = i === 0 ? balance : -balance;
+                sc.mesh.position.y =
+                  Math.sin(time * 3.0 + i * Math.PI) * 0.2 + yOffset;
+                sc.mesh.rotation.y -= dt;
+                sc.mesh.rotation.z = Math.sin(time * 2.0 + i) * 0.2;
+                sc.mesh.material.emissiveIntensity = 1.0 + activation * 3.0;
+              });
+
+              d.orbit.rotation.z = time * 0.5 + activation * 5.0;
+              d.orbit.scale.setScalar(activeScale);
+            } else if (d.isValidation) {
+              d.hexCore.rotation.y = time * 0.2 + activation * 10.0;
+              d.hexCore.material.emissiveIntensity = 1.0 + activation * 8.0;
+              d.hexCore.scale.setScalar(1.0 + pop);
+
+              d.scanners.forEach((sc) => {
+                const phase =
+                  (time * (1.0 + activation * 5.0) + sc.offset) % 3.0;
+                const yPos = phase - 1.5;
+                sc.mesh.position.y = yPos;
+                sc.mesh.rotation.y += dt * 4.0;
+                sc.mesh.scale.setScalar(1.0 + activation * 0.5 + pop);
+                sc.mesh.material.opacity = 0.5 + activation * 0.5;
+              });
+            }
+          });
+
+          // Inter link logic
+          if (innerAgents.length === 2 && interLinkMesh) {
+            const p1 = innerAgents[0].position;
+            const p2 = innerAgents[1].position;
+            const dist = p1.distanceTo(p2);
+
+            interLinkMesh.position.copy(p1);
+            interLinkMesh.lookAt(p2);
+
+            interLinkMat.uniforms.uTime.value = time;
+
+            const maxAct = Math.max(
+              innerAgents[0].userData.activationLevel,
+              innerAgents[1].userData.activationLevel,
+            );
+            const baseScale = 1.0 + maxAct * 2.0;
+
+            interLinkMesh.scale.set(baseScale, baseScale, dist);
+          }
+
+          const targetPkgY =
+            packagerGroup.userData.basePos.y + Math.sin(time) * 1.5;
+          packagerGroup.position.x = lerp(
+            packagerGroup.position.x,
+            packagerGroup.userData.basePos.x,
+            dt * 2.0,
+          );
+          packagerGroup.position.z = lerp(
+            packagerGroup.position.z,
+            packagerGroup.userData.basePos.z,
+            dt * 2.0,
+          );
+          packagerGroup.position.y = lerp(
+            packagerGroup.position.y,
+            targetPkgY,
+            dt * 2.0,
+          );
+
+          packagerGroup.userData.pulse = lerp(
+            packagerGroup.userData.pulse,
+            0.0,
+            dt * 6.0,
+          );
+          packagerGroup.userData.coreMat.uniforms.uTime.value = time;
+          packagerGroup.userData.coreMat.uniforms.uPulse.value = lerp(
+            packagerGroup.userData.coreMat.uniforms.uPulse.value,
+            0.0,
+            dt * 8.0,
+          );
+
+          // Re-scale cage based on pulse
+          const cageScale = 1.0 + packagerGroup.userData.pulse * 0.8;
+          packagerGroup.userData.cage.scale.setScalar(cageScale);
+          packagerGroup.userData.cage.rotation.y =
+            time * 0.4 + packagerGroup.userData.pulse * 2.0;
+          packagerGroup.userData.cage.rotation.z =
+            time * 0.2 + packagerGroup.userData.pulse * 2.0;
+
+          // Rotate rings
+          const pulseFactor = 1.0 + packagerGroup.userData.pulse * 15.0;
+          packagerGroup.userData.rings.forEach((ring, idx) => {
+            ring.rotation.x += dt * (0.5 + idx * 0.2) * pulseFactor;
+            ring.rotation.y += dt * (0.3 + idx * 0.4) * pulseFactor;
+            ring.scale.setScalar(1.0 + packagerGroup.userData.pulse * 0.5);
+          });
+
+          for (let i = dataStreams.length - 1; i >= 0; i--) {
+            const stream = dataStreams[i];
+            if (stream.delay > 0) {
+              stream.delay -= dt;
+              continue;
+            }
+            if (!stream.active) {
+              stream.active = true;
+            }
+
+            stream.progress += dt * 0.15;
+
+            if (stream.progress >= 1.0 && !stream.hasFired) {
+              stream.hasFired = true;
+              if (stream.onComplete) stream.onComplete();
+            }
+
+            stream.material.uniforms.uTime.value = time;
+            stream.material.uniforms.uFlowProgress.value = stream.progress;
+
+            const sP = stream.startNode.position;
+            const eP = stream.endNode.position;
+
+            stream.material.uniforms.uStart.value.copy(sP);
+            stream.material.uniforms.uEnd.value.copy(eP);
+
+            _tempDir.subVectors(eP, sP).multiplyScalar(0.2);
+            stream.material.uniforms.uControl1.value
+              .copy(sP)
+              .add(_upOffset)
+              .add(_tempDir);
+            stream.material.uniforms.uControl2.value
+              .copy(eP)
+              .add(_downOffset)
+              .sub(_tempDir);
+
+            if (stream.progress >= 1.8) {
+              stream.mesh.visible = false;
+              dataStreamPool.push({
+                mesh: stream.mesh,
+                material: stream.material,
+              });
+              dataStreams.splice(i, 1);
+            }
+          }
+
+          renderer.render(scene, camera);
+        }
+
+        window.addEventListener("resize", () => {
+          camera.aspect = window.innerWidth / window.innerHeight;
+          camera.updateProjectionMatrix();
+          renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        animate();
+      } catch (err) {
+        document.body.innerHTML +=
+          '<div style="position:absolute;top:0;left:0;z-index:99999;color:red;background:white;padding:20px;font-family:monospace;white-space:pre-wrap;">' +
+          err.stack +
+          "</div>";
+        console.error(err);
+      }
+    </script>
+  </body>
+</html>
