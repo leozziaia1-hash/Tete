@@ -2874,52 +2874,7 @@
         });
 
         // === LOOP & EXECUTIONS ===
-        
-        // === ULTRA-OPTIMIZACIONES MATEMÁTICAS ===
-        
-        // Tabla de lookup para sin/cos - 100x más rápido que Math.sin/cos
-        const SIN_TABLE_SIZE = 1024;
-        const SIN_TABLE = new Float32Array(SIN_TABLE_SIZE);
-        const COS_TABLE = new Float32Array(SIN_TABLE_SIZE);
-        for (let i = 0; i < SIN_TABLE_SIZE; i++) {
-          const angle = (i / SIN_TABLE_SIZE) * Math.PI * 2;
-          SIN_TABLE[i] = Math.sin(angle);
-          COS_TABLE[i] = Math.cos(angle);
-        }
-        
-        // Funciones ultra-rápidas usando tablas de lookup
-        const fastSin = (x) => {
-          // Normalizar a [0, 2π) y convertir a índice
-          let idx = ((x % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-          idx = Math.floor((idx / (Math.PI * 2)) * SIN_TABLE_SIZE) & (SIN_TABLE_SIZE - 1);
-          return SIN_TABLE[idx];
-        };
-        
-        const fastCos = (x) => {
-          let idx = ((x % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
-          idx = Math.floor((idx / (Math.PI * 2)) * SIN_TABLE_SIZE) & (SIN_TABLE_SIZE - 1);
-          return COS_TABLE[idx];
-        };
-        
-        // Interpolación vectorial óptima - evita 3 llamadas lerp separadas
-        const _tempLerpVec = new THREE.Vector3();
-        const lerpVector3 = (target, dest, factor, out) => {
-          out.copy(target).lerp(dest, factor);
-          return out;
-        };
-        
-        // Curva de Hermite quíntica C² para activaciones ultra-suaves
-        // Proporciona continuidad perfecta en aceleración
-        const quinticHermite = (t) => {
-          // t^3 * (10 - 15t + 6t²) - suavidad C² perfecta
-          const t2 = t * t;
-          const t3 = t2 * t;
-          return t3 * (10 - 15 * t + 6 * t2);
-        };
-        
-        // Lerp escalar tradicional optimizado
         const lerp = (a, b, t) => a + (b - a) * t;
-        
         let sequenceActive = false;
 
         execBtn.addEventListener("click", () => {
@@ -3055,18 +3010,13 @@
           coreLight.intensity = 2.0 + corePulse * 4.0;
           coreLight.color.setHex(corePulse > 0.1 ? 0xffffff : 0x00ffff);
 
-          // === OPTIMIZACIÓN: Early-out para nodos fuera de vista ===
-          // Frustum culling manual antes de cálculos costosos
-          const _frustumTemp = new THREE.Vector3();
-          
           allNodes.forEach((node) => {
             if (node.userData.pulse > 0) {
               node.userData.pulse -= dt * 2.0;
               if (node.userData.pulse < 0) node.userData.pulse = 0;
             }
-            
-            // OPTIMIZACIÓN: Usar fastSin en vez de Math.sin
-            const pulseScale = 1.0 + fastSin(node.userData.pulse * Math.PI) * 0.3;
+            const pulseScale =
+              1.0 + Math.sin(node.userData.pulse * Math.PI) * 0.3;
 
             const scaleLerpFactor = 1.0 - Math.exp(-dt * 12.0);
             node.userData.currentScale +=
@@ -3079,7 +3029,7 @@
             node.rotation.y += dt * 0.5;
             node.rotation.x += dt * 0.3;
 
-            // Labels projection - OPTIMIZACIÓN: Early-out si está muy lejos
+            // Labels projection
             node.getWorldPosition(_tempVector);
             _tempVector.project(camera);
             if (_tempVector.z > 1) {
@@ -3099,22 +3049,16 @@
             }
           });
 
-          // OPTIMIZACIÓN: Interpolación vectorial directa
           coreMesh.position.lerp(coreMesh.userData.basePos, dt * 2.0);
           coreLight.position.copy(coreMesh.position);
 
-          // === OPTIMIZACIÓN MASIVA: Pre-calcular valores comunes del loop ===
-          const sinTimeBase = time * 0.5;
-          
           agents.forEach((agent) => {
             const d = agent.userData;
-            
-            // OPTIMIZACIÓN: Usar fastSin en vez de Math.sin
-            const targetY = d.basePos.y + fastSin(sinTimeBase + d.phaseOffset) * 2.0;
-            
-            // OPTIMIZACIÓN: Interpolación vectorial en una sola operación (3 ops → 1 op)
-            _tempLerpVec.set(d.basePos.x, targetY, d.basePos.z);
-            agent.position.lerp(_tempLerpVec, dt * 2.0);
+            const targetY =
+              d.basePos.y + Math.sin(time * 0.5 + d.phaseOffset) * 2.0;
+            agent.position.x = lerp(agent.position.x, d.basePos.x, dt * 2.0);
+            agent.position.z = lerp(agent.position.z, d.basePos.z, dt * 2.0);
+            agent.position.y = lerp(agent.position.y, targetY, dt * 2.0);
 
             // --- NEW ACTIVATION ANIMATION ---
             const targetActivation = d.isActive ? 1.0 : 0.0;
@@ -3122,10 +3066,11 @@
             d.activationLevel +=
               (targetActivation - d.activationLevel) * lerpFactor;
 
-            // Spectacular BOUNCE pop effect con Hermite quintic para C² continuidad
-            // Esto da una animación más suave y orgánica
-            const activationSin = fastSin(d.activationLevel * Math.PI);
-            const pop = activationSin * Math.sqrt(Math.max(0, activationSin)) * 1.5;
+            // Spectacular BOUNCE pop effect
+            const pop =
+              Math.sin(d.activationLevel * Math.PI) *
+              Math.pow(Math.sin(d.activationLevel * Math.PI), 0.5) *
+              1.5;
 
             // Adding a sharp rotation spin when activating
             agent.rotation.y += dt * (0.2 + pop * 10.0);
@@ -3180,16 +3125,12 @@
 
               const orbitSpeed = 1.0 + d.activationLevel * 8.0;
               const orbitRadius = 1.5 + d.activationLevel * 1.2 + pop;
-              
-              // OPTIMIZACIÓN: Usar fastSin/fastCos en vez de Math.sin/Math.cos
-              const time5 = time * 5.0;
               d.satellites.forEach((satData, idx) => {
                 satData.angle += dt * orbitSpeed;
-                // Lookup table para sin/cos - mucho más rápido
-                satData.mesh.position.x = fastCos(satData.angle) * orbitRadius;
-                satData.mesh.position.z = fastSin(satData.angle) * orbitRadius;
+                satData.mesh.position.x = Math.cos(satData.angle) * orbitRadius;
+                satData.mesh.position.z = Math.sin(satData.angle) * orbitRadius;
                 satData.mesh.position.y =
-                  fastSin(time5 + idx) * (0.5 + d.activationLevel);
+                  Math.sin(time * 5.0 + idx) * (0.5 + d.activationLevel);
                 satData.mesh.rotation.x += dt * (1.0 + d.activationLevel * 4.0);
                 satData.mesh.rotation.y += dt * (1.5 + d.activationLevel * 4.0);
                 satData.mesh.material.color.copy(_tempEyeColor);
@@ -3205,18 +3146,13 @@
 
               const orbitSpeed = 0.5 + d.activationLevel * 6.0;
               const orbitRadius = 1.5 + d.activationLevel * 1.5 + pop;
-              
-              // OPTIMIZACIÓN: Pre-calcular sin/cos una vez por frame por nodo
               d.nodes.forEach((node, idx) => {
                 const t =
                   time * node.speed * (1.0 + d.activationLevel * 2.0) +
                   node.offset;
-                // OPTIMIZACIÓN: fastSin/fastCos y evitar multiplicación redundante
-                const sinT = fastSin(t);
-                const cosT = fastCos(t);
-                node.mesh.position.x = sinT * cosT * orbitRadius;
-                node.mesh.position.y = sinT * orbitRadius;
-                node.mesh.position.z = cosT * orbitRadius;
+                node.mesh.position.x = Math.sin(t) * Math.cos(t) * orbitRadius;
+                node.mesh.position.y = Math.sin(t) * orbitRadius;
+                node.mesh.position.z = Math.cos(t) * orbitRadius;
                 node.mesh.scale.setScalar(1.0 + pop * 0.5);
                 node.mesh.material.color
                   .copy(_colorCognitiveBase)
@@ -3272,29 +3208,22 @@
             }
           });
 
-          // === OPTIMIZACIÓN: innerAgents con vector lerp y fastSin ===
-          const innerSinTime = time; // Pre-calcular
-          const time2 = time * 2.0;
-          const time3 = time * 3.0;
-          
           innerAgents.forEach((agent) => {
             const d = agent.userData;
-            
-            // OPTIMIZACIÓN: fastSin en vez de Math.sin
-            const targetY = d.basePos.y + fastSin(innerSinTime + d.id) * 1.5;
-            
-            // OPTIMIZACIÓN: Interpolación vectorial unificada (3 ops → 1 op)
-            _tempLerpVec.set(d.basePos.x, targetY, d.basePos.z);
-            agent.position.lerp(_tempLerpVec, dt * 2.0);
+            const targetY = d.basePos.y + Math.sin(time + d.id) * 1.5;
+            agent.position.x = lerp(agent.position.x, d.basePos.x, dt * 2.0);
+            agent.position.z = lerp(agent.position.z, d.basePos.z, dt * 2.0);
+            agent.position.y = lerp(agent.position.y, targetY, dt * 2.0);
 
             const targetActivation = d.isActive ? 1.0 : 0.0;
             const lerpFactor = 1.0 - Math.exp(-dt * 10.0);
             d.activationLevel +=
               (targetActivation - d.activationLevel) * lerpFactor;
 
-            // OPTIMIZACIÓN: fastSin para el pop effect
-            const activationSin = fastSin(d.activationLevel * Math.PI);
-            const pop = activationSin * Math.sqrt(Math.max(0, activationSin)) * 1.5;
+            const pop =
+              Math.sin(d.activationLevel * Math.PI) *
+              Math.pow(Math.sin(d.activationLevel * Math.PI), 0.5) *
+              1.5;
             agent.rotation.y += dt * (0.2 + pop * 10.0);
 
             const activation = d.activationLevel;
@@ -3310,20 +3239,18 @@
               d.pillar.material.emissiveIntensity = 1.0 + activation * 8.0;
               d.pillar.scale.setScalar(1.0 + pop * 0.5);
 
-              // OPTIMIZACIÓN: fastSin pre-calculado
-              const bounce = fastSin(time2) * 0.3;
+              const bounce = Math.sin(time * 2.0) * 0.3;
               const balance = bounce * (1.0 - activation);
 
               d.scales.forEach((sc, i) => {
                 sc.angle += dt * (1.0 + activation * 4.0);
-                // OPTIMIZACIÓN: fastSin/fastCos para posiciones orbitales
-                sc.mesh.position.x = fastCos(sc.angle) * 2.0;
-                sc.mesh.position.z = fastSin(sc.angle) * 2.0;
+                sc.mesh.position.x = Math.cos(sc.angle) * 2.0;
+                sc.mesh.position.z = Math.sin(sc.angle) * 2.0;
                 const yOffset = i === 0 ? balance : -balance;
                 sc.mesh.position.y =
-                  fastSin(time3 + i * Math.PI) * 0.2 + yOffset;
+                  Math.sin(time * 3.0 + i * Math.PI) * 0.2 + yOffset;
                 sc.mesh.rotation.y -= dt;
-                sc.mesh.rotation.z = fastSin(time * 2.0 + i) * 0.2;
+                sc.mesh.rotation.z = Math.sin(time * 2.0 + i) * 0.2;
                 sc.mesh.material.emissiveIntensity = 1.0 + activation * 3.0;
               });
 
@@ -3366,16 +3293,23 @@
             interLinkMesh.scale.set(baseScale, baseScale, dist);
           }
 
-          // === OPTIMIZACIÓN: packagerGroup con vector lerp y fastSin ===
-          const targetPkgY = packagerGroup.userData.basePos.y + fastSin(time) * 1.5;
-          
-          // OPTIMIZACIÓN: Interpolación vectorial unificada (3 lerps → 1 lerp)
-          _tempLerpVec.set(
+          const targetPkgY =
+            packagerGroup.userData.basePos.y + Math.sin(time) * 1.5;
+          packagerGroup.position.x = lerp(
+            packagerGroup.position.x,
             packagerGroup.userData.basePos.x,
-            targetPkgY,
-            packagerGroup.userData.basePos.z
+            dt * 2.0,
           );
-          packagerGroup.position.lerp(_tempLerpVec, dt * 2.0);
+          packagerGroup.position.z = lerp(
+            packagerGroup.position.z,
+            packagerGroup.userData.basePos.z,
+            dt * 2.0,
+          );
+          packagerGroup.position.y = lerp(
+            packagerGroup.position.y,
+            targetPkgY,
+            dt * 2.0,
+          );
 
           packagerGroup.userData.pulse = lerp(
             packagerGroup.userData.pulse,
