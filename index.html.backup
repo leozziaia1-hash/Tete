@@ -2875,110 +2875,10 @@
 
         // === LOOP & EXECUTIONS ===
         
-        // === ULTRA-OPTIMIZACIONES MATEMÁTICAS AVANZADAS ===
-
-        // === 1. QUATERNIONS PARA ROTACIONES SUAVES (SLERP) ===
-        // Evita gimbal lock y proporciona interpolación esférica perfecta
-        const _tempQuaternion = new THREE.Quaternion();
-        const _targetQuaternion = new THREE.Quaternion();
-        const _slerpQuaternion = new THREE.Quaternion();
+        // === ULTRA-OPTIMIZACIONES MATEMÁTICAS ===
         
-        // Función SLERP optimizada para rotaciones suaves
-        const slerpRotation = (object, targetRotation, factor) => {
-          _targetQuaternion.setFromEuler(targetRotation);
-          _slerpQuaternion.copy(object.quaternion).slerp(_targetQuaternion, factor);
-          object.quaternion.copy(_slerpQuaternion);
-        };
-
-        // === 2. FÍSICA SPRING-MASS-DAMPER PARA MOVIMIENTOS NATURALES ===
-        // Sistema masa-resorte-amortiguador para suavidad orgánica
-        class SpringPhysics {
-          constructor(position = 0, velocity = 0) {
-            this.position = position;
-            this.velocity = velocity;
-            this.target = position;
-          }
-          
-          update(dt, stiffness = 15.0, damping = 8.0, mass = 1.0) {
-            // Ley de Hooke: F = -kx (fuerza del resorte)
-            const springForce = -stiffness * (this.position - this.target);
-            // Fuerza de amortiguamiento: F = -cv (resistencia al movimiento)
-            const dampingForce = -damping * this.velocity;
-            // Aceleración: a = F/m (segunda ley de Newton)
-            const acceleration = (springForce + dampingForce) / mass;
-            
-            // Integración semi-implícita de Euler (más estable que Euler explícito)
-            this.velocity += acceleration * dt;
-            this.position += this.velocity * dt;
-            
-            return this.position;
-          }
-          
-          setTarget(target) {
-            this.target = target;
-          }
-        }
-
-        // Pool de springs reutilizables para evitar GC
-        const springPool = [];
-        const getSpring = () => {
-          if (springPool.length > 0) {
-            const spring = springPool.pop();
-            spring.position = 0;
-            spring.velocity = 0;
-            spring.target = 0;
-            return spring;
-          }
-          return new SpringPhysics();
-        };
-        const releaseSpring = (spring) => springPool.push(spring);
-
-        // === 3. CURVAS BÉZIER CÚBICAS PARA TRAYECTORIAS ELEGANTES ===
-        // Evaluación optimizada de Bézier con derivadas para orientación
-        const evaluateBezier = (t, p0, p1, p2, p3, out) => {
-          const u = 1 - t;
-          const uu = u * u;
-          const uuu = uu * u;
-          const tt = t * t;
-          const ttt = tt * t;
-          
-          // B(t) = (1-t)³·P0 + 3(1-t)²·t·P1 + 3(1-t)·t²·P2 + t³·P3
-          out.x = uuu * p0.x + 3 * uu * t * p1.x + 3 * u * tt * p2.x + ttt * p3.x;
-          out.y = uuu * p0.y + 3 * uu * t * p1.y + 3 * u * tt * p2.y + ttt * p3.y;
-          out.z = uuu * p0.z + 3 * uu * t * p1.z + 3 * u * tt * p2.z + ttt * p3.z;
-          return out;
-        };
-
-        const evaluateBezierDerivative = (t, p0, p1, p2, p3, out) => {
-          const u = 1 - t;
-          const uu = u * u;
-          const tt = t * t;
-          
-          // B'(t) = 3(1-t)²(P1-P0) + 6(1-t)t(P2-P1) + 3t²(P3-P2)
-          out.x = 3 * uu * (p1.x - p0.x) + 6 * u * t * (p2.x - p1.x) + 3 * tt * (p3.x - p2.x);
-          out.y = 3 * uu * (p1.y - p0.y) + 6 * u * t * (p2.y - p1.y) + 3 * tt * (p3.y - p2.y);
-          out.z = 3 * uu * (p1.z - p0.z) + 6 * u * t * (p2.z - p1.z) + 3 * tt * (p3.z - p2.z);
-          return out;
-        };
-
-        // === 4. INTERPOLACIÓN QUINTICA DE HERMITE C² PARA ACTIVACIONES ===
-        // Proporciona continuidad perfecta en posición, velocidad y aceleración
-        const quinticHermite = (t) => {
-          // h(t) = t³(10 - 15t + 6t²) - C² continua
-          const t2 = t * t;
-          const t3 = t2 * t;
-          return t3 * (10 - 15 * t + 6 * t2);
-        };
-
-        const quinticHermiteDerivative = (t) => {
-          // h'(t) = 30t²(1-t)² - velocidad suave
-          const t2 = t * t;
-          const oneMinusT = 1 - t;
-          return 30 * t2 * oneMinusT * oneMinusT;
-        };
-
-        // === 5. TABLA DE LOOKUP PARA SIN/COS - 100x MÁS RÁPIDO ===
-        const SIN_TABLE_SIZE = 2048; // Mayor precisión
+        // Tabla de lookup para sin/cos - 100x más rápido que Math.sin/cos
+        const SIN_TABLE_SIZE = 1024;
         const SIN_TABLE = new Float32Array(SIN_TABLE_SIZE);
         const COS_TABLE = new Float32Array(SIN_TABLE_SIZE);
         for (let i = 0; i < SIN_TABLE_SIZE; i++) {
@@ -2986,34 +2886,41 @@
           SIN_TABLE[i] = Math.sin(angle);
           COS_TABLE[i] = Math.cos(angle);
         }
-
+        
+        // Funciones ultra-rápidas usando tablas de lookup
         const fastSin = (x) => {
+          // Normalizar a [0, 2π) y convertir a índice
           let idx = ((x % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
           idx = Math.floor((idx / (Math.PI * 2)) * SIN_TABLE_SIZE) & (SIN_TABLE_SIZE - 1);
           return SIN_TABLE[idx];
         };
-
+        
         const fastCos = (x) => {
           let idx = ((x % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
           idx = Math.floor((idx / (Math.PI * 2)) * SIN_TABLE_SIZE) & (SIN_TABLE_SIZE - 1);
           return COS_TABLE[idx];
         };
-
-        // === 6. LERP VECTORIAL OPTIMIZADO ===
+        
+        // Interpolación vectorial óptima - evita 3 llamadas lerp separadas
         const _tempLerpVec = new THREE.Vector3();
         const lerpVector3 = (target, dest, factor, out) => {
           out.copy(target).lerp(dest, factor);
           return out;
         };
-
-        // === 7. LERP ESCALAR OPTIMIZADO ===
+        
+        // Curva de Hermite quíntica C² para activaciones ultra-suaves
+        // Proporciona continuidad perfecta en aceleración
+        const quinticHermite = (t) => {
+          // t^3 * (10 - 15t + 6t²) - suavidad C² perfecta
+          const t2 = t * t;
+          const t3 = t2 * t;
+          return t3 * (10 - 15 * t + 6 * t2);
+        };
+        
+        // Lerp escalar tradicional optimizado
         const lerp = (a, b, t) => a + (b - a) * t;
         
-        // Lerp exponencial para suavidad natural
-        const lerpExponential = (current, target, dt, smoothing = 10.0) => {
-          const factor = 1.0 - Math.exp(-smoothing * dt);
-          return current + (target - current) * factor;
-        };
+        let sequenceActive = false;
 
         execBtn.addEventListener("click", () => {
           if (sequenceActive) return;
